@@ -20,7 +20,7 @@ public class LionBanner {
 
     public String roarToNoTests() {
         final ResourceBundle bundle = ResourceBundle.getBundle("META-INF/savanna/roaring");
-        return String.format(body, bundle.getString("noTest"));
+        return String.format(body, bundle.getString("noTests"));
     }
     public String roarToSkipTesting() {
         final ResourceBundle bundle = ResourceBundle.getBundle("META-INF/savanna/roaring");
