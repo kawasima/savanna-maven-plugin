@@ -3,7 +3,6 @@ package net.unit8.maven.plugins;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -12,7 +11,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 import java.util.Objects;
 
-@Mojo(name = "roar", defaultPhase = LifecyclePhase.VALIDATE, threadSafe = true)
+@Mojo(name = "roar", defaultPhase = LifecyclePhase.VALIDATE)
 public class RoarMojo extends AbstractMojo {
     @Parameter(property = "savanna.roarToNoTests", defaultValue = "true")
     private boolean roarToNoTests;
