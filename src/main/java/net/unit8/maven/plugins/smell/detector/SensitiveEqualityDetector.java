@@ -8,9 +8,9 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class SensitiveEqualityDetector implements SmellDetector {
-    private static final Set<String> EQUALITY_ASSERTIONS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> EQUALITY_ASSERTIONS = Set.of(
             "assertEquals", "assertNotEquals"
-    ));
+    );
 
     @Override
     public SmellType type() {

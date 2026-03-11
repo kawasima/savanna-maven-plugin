@@ -3,20 +3,18 @@ package net.unit8.maven.plugins.smell.detector;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class DefaultTestDetector implements SmellDetector {
-    private static final Set<String> DEFAULT_NAMES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> DEFAULT_NAMES = Set.of(
             "ExampleTest", "ExampleTests",
             "ExampleUnitTest", "ExampleInstrumentedTest",
             "SampleTest", "SampleTests",
             "MyTest", "MyTests",
             "TestClass", "NewTest",
             "MainActivityTest"
-    ));
+    );
 
     @Override
     public SmellType type() {

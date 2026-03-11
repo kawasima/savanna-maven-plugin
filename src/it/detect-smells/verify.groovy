@@ -1,0 +1,10 @@
+def buildLog = (String) new File("target/it/detect-smells/build.log").text
+assert buildLog.contains("@t_wada")
+assert buildLog.contains("Empty Test")
+assert buildLog.contains("Missing Assertion")
+assert buildLog.contains("Ignored Test")
+assert buildLog.contains("Redundant Print")
+assert buildLog.contains("Assertion Roulette")
+assert buildLog.contains("Sleepy Test")
+assert buildLog.contains("Conditional Test Logic")
+assert buildLog.contains("Redundant Assertion")

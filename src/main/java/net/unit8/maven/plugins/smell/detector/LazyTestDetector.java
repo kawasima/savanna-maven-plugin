@@ -12,13 +12,13 @@ import java.util.*;
  * (same scope and method name), suggesting test duplication.
  */
 public class LazyTestDetector implements SmellDetector {
-    private static final Set<String> EXCLUDED_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> EXCLUDED_METHODS = Set.of(
             "assertEquals", "assertNotEquals", "assertTrue", "assertFalse",
             "assertNull", "assertNotNull", "assertThrows", "assertThat",
             "assertThatThrownBy", "assertAll", "fail",
             "when", "given", "verify", "mock", "spy",
             "toString", "hashCode", "equals", "getClass"
-    ));
+    );
 
     @Override
     public SmellType type() {

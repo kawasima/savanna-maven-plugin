@@ -6,6 +6,7 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 
 public class DetectionContext {
@@ -13,6 +14,7 @@ public class DetectionContext {
     private final ClassOrInterfaceDeclaration testClass;
     private final List<MethodDeclaration> testMethods;
     private final List<MethodDeclaration> setupMethods;
+    private final List<MethodDeclaration> teardownMethods;
     private final List<FieldDeclaration> fields;
     private final Path sourceFile;
 
@@ -22,10 +24,21 @@ public class DetectionContext {
                            List<MethodDeclaration> setupMethods,
                            List<FieldDeclaration> fields,
                            Path sourceFile) {
+        this(compilationUnit, testClass, testMethods, setupMethods, Collections.emptyList(), fields, sourceFile);
+    }
+
+    public DetectionContext(CompilationUnit compilationUnit,
+                           ClassOrInterfaceDeclaration testClass,
+                           List<MethodDeclaration> testMethods,
+                           List<MethodDeclaration> setupMethods,
+                           List<MethodDeclaration> teardownMethods,
+                           List<FieldDeclaration> fields,
+                           Path sourceFile) {
         this.compilationUnit = compilationUnit;
         this.testClass = testClass;
         this.testMethods = testMethods;
         this.setupMethods = setupMethods;
+        this.teardownMethods = teardownMethods;
         this.fields = fields;
         this.sourceFile = sourceFile;
     }
@@ -44,6 +57,10 @@ public class DetectionContext {
 
     public List<MethodDeclaration> getSetupMethods() {
         return setupMethods;
+    }
+
+    public List<MethodDeclaration> getTeardownMethods() {
+        return teardownMethods;
     }
 
     public List<FieldDeclaration> getFields() {

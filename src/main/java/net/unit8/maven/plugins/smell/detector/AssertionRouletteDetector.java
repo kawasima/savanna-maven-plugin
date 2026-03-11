@@ -14,15 +14,15 @@ import java.util.*;
  * AssertJ fluent API (message via {@code as()} or {@code describedAs()} in the chain).
  */
 public class AssertionRouletteDetector implements SmellDetector {
-    private static final Set<String> JUNIT_ASSERTIONS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> JUNIT_ASSERTIONS = Set.of(
             "assertEquals", "assertNotEquals",
             "assertTrue", "assertFalse",
             "assertNull", "assertNotNull",
             "assertSame", "assertNotSame",
             "assertArrayEquals"
-    ));
+    );
 
-    private static final Set<String> ASSERTJ_TERMINAL_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> ASSERTJ_TERMINAL_METHODS = Set.of(
             "isEqualTo", "isNotEqualTo", "isNull", "isNotNull",
             "isTrue", "isFalse", "isEmpty", "isNotEmpty",
             "isPresent", "isNotPresent", "isInstanceOf",
@@ -30,7 +30,7 @@ public class AssertionRouletteDetector implements SmellDetector {
             "startsWith", "endsWith", "matches",
             "isGreaterThan", "isLessThan", "isZero", "isPositive", "isNegative",
             "isSameAs", "isNotSameAs", "isBetween"
-    ));
+    );
 
     @Override
     public SmellType type() {

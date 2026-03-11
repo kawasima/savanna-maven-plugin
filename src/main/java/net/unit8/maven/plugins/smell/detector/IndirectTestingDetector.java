@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
  * scope is clearly unrelated and accounts for the majority of calls.
  */
 public class IndirectTestingDetector implements SmellDetector {
-    private static final Set<String> EXCLUDED_SCOPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> EXCLUDED_SCOPES = Set.of(
             "System", "Arrays", "Collections", "Objects", "Math",
             "Assertions", "Assert", "Mockito", "BDDMockito",
             "String", "Integer", "Long", "Double", "Boolean",
             "Optional", "Stream", "List", "Map", "Set"
-    ));
+    );
 
     @Override
     public SmellType type() {

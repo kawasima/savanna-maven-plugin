@@ -6,19 +6,17 @@ import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 /**
  * Detects test methods that use sleep calls, which make tests slow and fragile.
  * Recognizes both {@code Thread.sleep()} and {@code TimeUnit.*.sleep()}.
  */
 public class SleepyTestDetector implements SmellDetector {
-    private static final Set<String> TIMEUNIT_NAMES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> TIMEUNIT_NAMES = Set.of(
             "NANOSECONDS", "MICROSECONDS", "MILLISECONDS", "SECONDS", "MINUTES", "HOURS", "DAYS"
-    ));
+    );
 
     @Override
     public SmellType type() {

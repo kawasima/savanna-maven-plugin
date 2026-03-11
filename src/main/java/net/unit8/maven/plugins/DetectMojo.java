@@ -4,6 +4,7 @@ import net.unit8.maven.plugins.smell.*;
 import net.unit8.maven.plugins.smell.parse.TestClassParser;
 import net.unit8.maven.plugins.smell.report.ConsoleSmellReporter;
 import net.unit8.maven.plugins.smell.report.JsonSmellReporter;
+import net.unit8.maven.plugins.smell.report.MarkdownSmellReporter;
 import net.unit8.maven.plugins.smell.report.SmellReporter;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Mojo(name = "roar", defaultPhase = LifecyclePhase.PROCESS_TEST_SOURCES)
 public class DetectMojo extends AbstractMojo {
@@ -82,7 +84,7 @@ public class DetectMojo extends AbstractMojo {
         // Pick a random detected smell and display the lion banner
         List<TestSmell> allSmells = smellsByFile.values().stream()
                 .flatMap(List::stream)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
         TestSmell randomSmell = allSmells.get(new Random().nextInt(allSmells.size()));
         getLog().warn(banner.roar(randomSmell.getType().getPropertyKey()));
 
@@ -90,6 +92,9 @@ public class DetectMojo extends AbstractMojo {
         if ("json".equalsIgnoreCase(reportFormat)) {
             reporter = new JsonSmellReporter(reportOutputDirectory);
             getLog().info("Writing JSON report to " + reportOutputDirectory.getAbsolutePath());
+        } else if ("markdown".equalsIgnoreCase(reportFormat) || "md".equalsIgnoreCase(reportFormat)) {
+            reporter = new MarkdownSmellReporter(reportOutputDirectory);
+            getLog().info("Writing Markdown report to " + reportOutputDirectory.getAbsolutePath());
         } else {
             reporter = new ConsoleSmellReporter(getLog());
         }
@@ -115,7 +120,9 @@ public class DetectMojo extends AbstractMojo {
                 .orElse(false);
 
         boolean skipByProperty = Objects.nonNull(System.getProperty("skipTests"))
-                || Objects.equals(System.getProperty("maven.test.skip"), "true");
+                || Objects.equals(System.getProperty("maven.test.skip"), "true")
+                || "true".equals(project.getProperties().getProperty("skipTests"))
+                || "true".equals(project.getProperties().getProperty("maven.test.skip"));
 
         if (skipTestsInConfig || skipByProperty) {
             smellsByFile.computeIfAbsent("(project)", k -> new ArrayList<>()).add(
@@ -208,18 +215,14 @@ public class DetectMojo extends AbstractMojo {
     }
 
     private boolean isSmellEnabled(SmellType smellType) {
-        String name = smellType.name();
-        if (enabledSmells != null && !enabledSmells.isEmpty()) {
-            return enabledSmells.stream().anyMatch(s -> s.equalsIgnoreCase(name));
-        }
-        if (disabledSmells != null && !disabledSmells.isEmpty()) {
-            return disabledSmells.stream().noneMatch(s -> s.equalsIgnoreCase(name));
-        }
-        return true;
+        return SmellDetectorRegistry.isEnabled(smellType, enabledSmells, disabledSmells);
     }
 
+    private static final Map<String, PathMatcher> GLOB_CACHE = new HashMap<>();
+
     private static boolean matchGlob(String pattern, String path) {
-        PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+        PathMatcher matcher = GLOB_CACHE.computeIfAbsent(pattern,
+                p -> FileSystems.getDefault().getPathMatcher("glob:" + p));
         return matcher.matches(Paths.get(path));
     }
 }

@@ -5,7 +5,6 @@ import net.unit8.maven.plugins.smell.detector.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SmellDetectorRegistry {
@@ -51,24 +50,20 @@ public class SmellDetectorRegistry {
         return Collections.unmodifiableList(detectors);
     }
 
-    public static List<SmellDetector> filter(List<String> enabled, List<String> disabled) {
-        List<SmellDetector> all = allDetectors();
+    public static boolean isEnabled(SmellType smellType, List<String> enabled, List<String> disabled) {
+        String name = smellType.name();
         if (enabled != null && !enabled.isEmpty()) {
-            Set<String> enabledSet = enabled.stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toSet());
-            return all.stream()
-                    .filter(d -> enabledSet.contains(d.type().name()))
-                    .collect(Collectors.toList());
+            return enabled.stream().anyMatch(s -> s.equalsIgnoreCase(name));
         }
         if (disabled != null && !disabled.isEmpty()) {
-            Set<String> disabledSet = disabled.stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toSet());
-            return all.stream()
-                    .filter(d -> !disabledSet.contains(d.type().name()))
-                    .collect(Collectors.toList());
+            return disabled.stream().noneMatch(s -> s.equalsIgnoreCase(name));
         }
-        return all;
+        return true;
+    }
+
+    public static List<SmellDetector> filter(List<String> enabled, List<String> disabled) {
+        return allDetectors().stream()
+                .filter(d -> isEnabled(d.type(), enabled, disabled))
+                .collect(Collectors.toList());
     }
 }

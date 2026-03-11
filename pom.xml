@@ -4,19 +4,19 @@
 
     <groupId>net.unit8.maven.plugins</groupId>
     <artifactId>savanna-maven-plugin</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>savanna-maven-plugin</name>
     <url>https://github.com/kawasima/savanna-maven-plugin</url>
-    <description>If your project skips test, the build fails with a wild lion's roar.</description>
+    <description>A Maven plugin that detects test smells in your project and roars like a lion.</description>
 
     <inceptionYear>2019</inceptionYear>
 
     <scm>
         <url>https://github.com/kawasima/savanna-maven-plugin</url>
-        <connection>scm:git://github.com/kawasima/savanna-maven-plugin.git</connection>
-        <developerConnection>scm:git:git@github.com/kawasima/savanna-maven-plugin.git</developerConnection>
+        <connection>scm:git:git://github.com/kawasima/savanna-maven-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:kawasima/savanna-maven-plugin.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -53,7 +53,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <github.global.server>github</github.global.server>
     </properties>
 
     <build>
@@ -108,22 +107,6 @@
                 <artifactId>maven-project-info-reports-plugin</artifactId>
                 <version>3.9.0</version>
             </plugin>
-            <plugin>
-                <groupId>com.github.github</groupId>
-                <artifactId>site-maven-plugin</artifactId>
-                <version>0.12</version>
-                <configuration>
-                    <message>Creating site for ${project.version}</message>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>site</goal>
-                        </goals>
-                        <phase>site</phase>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
@@ -138,6 +121,12 @@
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-tools-annotations</artifactId>
             <version>3.15.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-core</artifactId>
+            <version>3.9.9</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -225,6 +214,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.2</version>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>

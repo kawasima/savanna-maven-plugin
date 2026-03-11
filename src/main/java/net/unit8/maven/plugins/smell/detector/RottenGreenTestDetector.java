@@ -9,14 +9,14 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class RottenGreenTestDetector implements SmellDetector {
-    private static final Set<String> ASSERTION_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> ASSERTION_METHODS = Set.of(
             "assertEquals", "assertNotEquals",
             "assertTrue", "assertFalse",
             "assertNull", "assertNotNull",
             "assertSame", "assertNotSame",
             "assertThrows", "assertThat",
             "fail"
-    ));
+    );
 
     @Override
     public SmellType type() {

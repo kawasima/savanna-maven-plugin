@@ -8,10 +8,10 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class HiddenDependencyDetector implements SmellDetector {
-    private static final Set<String> SINGLETON_PATTERNS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> SINGLETON_PATTERNS = Set.of(
             "getInstance", "getDefault", "getSingleton",
             "newInstance", "current", "getContext"
-    ));
+    );
 
     @Override
     public SmellType type() {

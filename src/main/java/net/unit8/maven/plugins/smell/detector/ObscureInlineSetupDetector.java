@@ -10,7 +10,7 @@ import java.util.*;
 
 public class ObscureInlineSetupDetector implements SmellDetector {
     private static final int DEFAULT_THRESHOLD = 10;
-    private static final Set<String> ASSERTION_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> ASSERTION_METHODS = Set.of(
             "assertEquals", "assertNotEquals",
             "assertTrue", "assertFalse",
             "assertNull", "assertNotNull",
@@ -21,7 +21,7 @@ public class ObscureInlineSetupDetector implements SmellDetector {
             "assertLinesMatch", "assertInstanceOf",
             "fail", "assertThat", "assertThatThrownBy",
             "assertThatCode", "assertThatExceptionOfType"
-    ));
+    );
 
     private final int threshold;
 

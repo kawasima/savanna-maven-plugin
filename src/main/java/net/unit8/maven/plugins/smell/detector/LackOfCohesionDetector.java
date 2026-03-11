@@ -13,11 +13,11 @@ import java.util.stream.Collectors;
  * suggesting the test class lacks cohesion.
  */
 public class LackOfCohesionDetector implements SmellDetector {
-    private static final Set<String> EXCLUDED_SCOPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> EXCLUDED_SCOPES = Set.of(
             "System", "Arrays", "Collections", "Objects", "Math",
             "Assertions", "Assert", "Mockito",
             "String", "Integer", "Long", "Double", "Boolean"
-    ));
+    );
 
     @Override
     public SmellType type() {

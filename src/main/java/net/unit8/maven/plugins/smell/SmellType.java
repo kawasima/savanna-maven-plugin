@@ -30,8 +30,6 @@ public enum SmellType {
     ORDER_DEPENDENT_TEST("Order-Dependent Test"),
     HIDDEN_DEPENDENCY("Hidden Dependency"),
     RESOURCE_LEAKAGE("Resource Leakage"),
-    TIME_SENSITIVE_TEST("Time Sensitive Test"),
-    EXTERNAL_DEPENDENCY("External Dependency"),
     DEAD_FIELD("Dead Field"),
     FLAKY_TEST("Flaky Test"),
     NO_TEST("No Test"),

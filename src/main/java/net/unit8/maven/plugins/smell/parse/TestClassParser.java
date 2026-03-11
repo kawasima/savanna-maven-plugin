@@ -10,17 +10,19 @@ import net.unit8.maven.plugins.smell.DetectionContext;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class TestClassParser {
-    private static final List<String> TEST_ANNOTATIONS = Arrays.asList(
+    private static final List<String> TEST_ANNOTATIONS = List.of(
             "Test", "ParameterizedTest", "RepeatedTest"
     );
-    private static final List<String> SETUP_ANNOTATIONS = Arrays.asList(
+    private static final List<String> SETUP_ANNOTATIONS = List.of(
             "BeforeEach", "BeforeAll"
+    );
+    private static final List<String> TEARDOWN_ANNOTATIONS = List.of(
+            "AfterEach", "AfterAll"
     );
 
     public List<DetectionContext> parse(Path sourceFile) throws IOException {
@@ -40,9 +42,13 @@ public class TestClassParser {
                     .filter(this::isSetupMethod)
                     .collect(Collectors.toList());
 
+            List<MethodDeclaration> teardownMethods = clazz.getMethods().stream()
+                    .filter(this::isTeardownMethod)
+                    .collect(Collectors.toList());
+
             List<FieldDeclaration> fields = clazz.getFields();
 
-            contexts.add(new DetectionContext(cu, clazz, testMethods, setupMethods, fields, sourceFile));
+            contexts.add(new DetectionContext(cu, clazz, testMethods, setupMethods, teardownMethods, fields, sourceFile));
         }
 
         return contexts;
@@ -64,9 +70,13 @@ public class TestClassParser {
                 .filter(this::isSetupMethod)
                 .collect(Collectors.toList());
 
+        List<MethodDeclaration> teardownMethods = clazz.getMethods().stream()
+                .filter(this::isTeardownMethod)
+                .collect(Collectors.toList());
+
         List<FieldDeclaration> fields = clazz.getFields();
 
-        return new DetectionContext(cu, clazz, testMethods, setupMethods, fields, null);
+        return new DetectionContext(cu, clazz, testMethods, setupMethods, teardownMethods, fields, null);
     }
 
     private boolean isTestMethod(MethodDeclaration method) {
@@ -76,6 +86,11 @@ public class TestClassParser {
 
     private boolean isSetupMethod(MethodDeclaration method) {
         return SETUP_ANNOTATIONS.stream()
+                .anyMatch(ann -> method.getAnnotationByName(ann).isPresent());
+    }
+
+    private boolean isTeardownMethod(MethodDeclaration method) {
+        return TEARDOWN_ANNOTATIONS.stream()
                 .anyMatch(ann -> method.getAnnotationByName(ann).isPresent());
     }
 }

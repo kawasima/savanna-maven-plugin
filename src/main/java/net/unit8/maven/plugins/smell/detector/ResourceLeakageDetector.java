@@ -8,7 +8,7 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class ResourceLeakageDetector implements SmellDetector {
-    private static final Set<String> CLOSEABLE_TYPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> CLOSEABLE_TYPES = Set.of(
             "InputStream", "OutputStream",
             "FileInputStream", "FileOutputStream",
             "BufferedReader", "BufferedWriter",
@@ -21,7 +21,7 @@ public class ResourceLeakageDetector implements SmellDetector {
             "Statement", "PreparedStatement",
             "ResultSet", "Socket",
             "ServerSocket", "Channel"
-    ));
+    );
 
     @Override
     public SmellType type() {
@@ -55,7 +55,6 @@ public class ResourceLeakageDetector implements SmellDetector {
                             creation.getBegin().map(p -> p.line).orElse(0),
                             "Resource '" + creation.getTypeAsString() + "' not in try-with-resources"
                     ));
-                    break;
                 }
             }
         }

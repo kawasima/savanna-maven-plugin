@@ -19,12 +19,15 @@ public class FixtureSmellDetector implements SmellDetector {
         List<TestSmell> smells = new ArrayList<>();
         String className = context.getTestClass().getNameAsString();
 
-        // Collect all NameExpr references in test methods and setup methods
+        // Collect all NameExpr references in test, setup, and teardown methods
         Set<String> referencedNames = new HashSet<>();
         for (MethodDeclaration method : context.getTestMethods()) {
             method.findAll(NameExpr.class).forEach(ne -> referencedNames.add(ne.getNameAsString()));
         }
         for (MethodDeclaration method : context.getSetupMethods()) {
+            method.findAll(NameExpr.class).forEach(ne -> referencedNames.add(ne.getNameAsString()));
+        }
+        for (MethodDeclaration method : context.getTeardownMethods()) {
             method.findAll(NameExpr.class).forEach(ne -> referencedNames.add(ne.getNameAsString()));
         }
 

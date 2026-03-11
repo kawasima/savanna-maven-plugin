@@ -5,13 +5,11 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class MissingAssertionDetector implements SmellDetector {
-    private static final Set<String> ASSERTION_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> ASSERTION_METHODS = Set.of(
             // JUnit 5 Assertions
             "assertEquals", "assertNotEquals",
             "assertTrue", "assertFalse",
@@ -26,10 +24,8 @@ public class MissingAssertionDetector implements SmellDetector {
             // AssertJ
             "assertThat", "assertThatThrownBy",
             "assertThatCode", "assertThatExceptionOfType",
-            "assertThatNoException",
-            // Hamcrest
-            "assertThat"
-    ));
+            "assertThatNoException"
+    );
 
     @Override
     public SmellType type() {

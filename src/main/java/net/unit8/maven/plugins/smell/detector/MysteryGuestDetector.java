@@ -9,7 +9,7 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class MysteryGuestDetector implements SmellDetector {
-    private static final Set<String> IO_TYPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> IO_TYPES = Set.of(
             "File", "FileInputStream", "FileOutputStream",
             "FileReader", "FileWriter",
             "BufferedReader", "BufferedWriter",
@@ -18,14 +18,14 @@ public class MysteryGuestDetector implements SmellDetector {
             "URL", "HttpURLConnection",
             "Socket", "ServerSocket",
             "Connection", "DriverManager"
-    ));
+    );
 
-    private static final Set<String> IO_METHOD_CALLS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> IO_METHOD_CALLS = Set.of(
             "readAllLines", "readAllBytes", "readString",
             "write", "newInputStream", "newOutputStream",
             "newBufferedReader", "newBufferedWriter",
             "getConnection", "openConnection"
-    ));
+    );
 
     @Override
     public SmellType type() {

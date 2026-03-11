@@ -3,10 +3,10 @@ package net.unit8.maven.plugins.smell.detector;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.AssignExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class OrderDependentTestDetector implements SmellDetector {
     @Override
@@ -30,7 +30,7 @@ public class OrderDependentTestDetector implements SmellDetector {
             ));
         }
 
-        // Check for test methods writing to shared (instance) fields
+        // Collect instance field names
         List<String> fieldNames = new ArrayList<>();
         for (FieldDeclaration field : context.getFields()) {
             if (!field.isStatic()) {
@@ -38,10 +38,32 @@ public class OrderDependentTestDetector implements SmellDetector {
             }
         }
 
-        if (!fieldNames.isEmpty()) {
+        if (fieldNames.isEmpty()) {
+            return smells;
+        }
+
+        // Exclude fields that are reset in @BeforeEach (they are safe to write to)
+        Set<String> setupResetFields = new HashSet<>();
+        for (MethodDeclaration setup : context.getSetupMethods()) {
+            if (setup.getAnnotationByName("BeforeEach").isPresent()) {
+                setup.findAll(AssignExpr.class).stream()
+                        .filter(a -> a.getTarget() instanceof NameExpr)
+                        .map(a -> ((NameExpr) a.getTarget()).getNameAsString())
+                        .forEach(setupResetFields::add);
+            }
+        }
+
+        List<String> unsafeFieldNames = new ArrayList<>();
+        for (String name : fieldNames) {
+            if (!setupResetFields.contains(name)) {
+                unsafeFieldNames.add(name);
+            }
+        }
+
+        if (!unsafeFieldNames.isEmpty()) {
             for (MethodDeclaration method : context.getTestMethods()) {
                 boolean writesSharedState = method.findAll(AssignExpr.class).stream()
-                        .anyMatch(assign -> fieldNames.contains(assign.getTarget().toString()));
+                        .anyMatch(assign -> unsafeFieldNames.contains(assign.getTarget().toString()));
 
                 if (writesSharedState) {
                     smells.add(new TestSmell(

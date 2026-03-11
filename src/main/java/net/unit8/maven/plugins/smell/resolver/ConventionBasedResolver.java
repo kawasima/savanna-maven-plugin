@@ -6,15 +6,14 @@ import com.github.javaparser.ast.CompilationUnit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ConventionBasedResolver implements TestToProductionResolver {
-    private static final List<String> SUFFIXES = Arrays.asList("Test", "Tests", "IT", "Spec");
-    private static final List<String> PREFIXES = Arrays.asList("Test");
+    private static final List<String> SUFFIXES = List.of("Test", "Tests", "IT", "Spec");
+    private static final List<String> PREFIXES = List.of("Test");
 
     private final Map<String, Optional<CompilationUnit>> cache = new ConcurrentHashMap<>();
 

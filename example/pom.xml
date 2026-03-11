@@ -10,7 +10,7 @@
     <name>Savanna Maven Plugin Example</name>
     <description>Example project demonstrating test smell detection with savanna-maven-plugin</description>
 
-    <properties
+    <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -30,7 +30,7 @@
             <plugin>
                 <groupId>net.unit8.maven.plugins</groupId>
                 <artifactId>savanna-maven-plugin</artifactId>
-                <version>0.2.0-SNAPSHOT</version>
+                <version>0.2.0</version>
                 <executions>
                     <execution>
                         <goals>

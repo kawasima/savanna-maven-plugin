@@ -8,11 +8,11 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class ResourceOptimismDetector implements SmellDetector {
-    private static final Set<String> FILE_TYPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> FILE_TYPES = Set.of(
             "File", "FileInputStream", "FileOutputStream",
             "FileReader", "FileWriter",
             "RandomAccessFile", "FileChannel"
-    ));
+    );
 
     @Override
     public SmellType type() {

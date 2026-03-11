@@ -14,12 +14,12 @@ import java.util.*;
  * not wrapped in a named constant or variable.
  */
 public class MagicNumberTestDetector implements SmellDetector {
-    private static final Set<String> ASSERTION_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> ASSERTION_METHODS = Set.of(
             "assertEquals", "assertNotEquals",
             "assertSame", "assertNotSame",
             "assertArrayEquals",
             "assertThat"
-    ));
+    );
 
     private static final Set<String> EXCLUDED_VALUES = new HashSet<>(Arrays.asList(
             "0", "1", "2", "-1", "-2",

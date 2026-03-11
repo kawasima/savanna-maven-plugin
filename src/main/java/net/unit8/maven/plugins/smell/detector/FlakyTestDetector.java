@@ -9,13 +9,13 @@ import net.unit8.maven.plugins.smell.*;
 import java.util.*;
 
 public class FlakyTestDetector implements SmellDetector {
-    private static final Set<String> RANDOM_TYPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> RANDOM_TYPES = Set.of(
             "Random", "ThreadLocalRandom", "SecureRandom"
-    ));
+    );
 
-    private static final Set<String> TIME_METHODS = new TreeSet<>(Arrays.asList(
+    private static final Set<String> TIME_METHODS = Set.of(
             "now", "currentTimeMillis", "nanoTime"
-    ));
+    );
 
     @Override
     public SmellType type() {

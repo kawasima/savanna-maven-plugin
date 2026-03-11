@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
  * collaborator.
  */
 public class EagerTestDetector implements SmellDetector {
-    private static final Set<String> EXCLUDED_SCOPES = new TreeSet<>(Arrays.asList(
+    private static final Set<String> EXCLUDED_SCOPES = Set.of(
             "System", "Arrays", "Collections", "Objects", "Math",
             "String", "Integer", "Long", "Double", "Boolean",
             "Assertions", "Assert", "Mockito", "BDDMockito",
             "Optional", "Stream", "Thread"
-    ));
+    );
 
     private static final int THRESHOLD = 3;
 
