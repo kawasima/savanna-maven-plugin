@@ -18,13 +18,17 @@ public class LionBanner {
         }
     }
 
-    public String roarToNoTests() {
+    public String roar(String key) {
         final ResourceBundle bundle = ResourceBundle.getBundle("META-INF/savanna/roaring");
-        return String.format(body, bundle.getString("noTests"));
+        return String.format(body, bundle.getString(key));
     }
+
+    public String roarToNoTests() {
+        return roar("noTests");
+    }
+
     public String roarToSkipTesting() {
-        final ResourceBundle bundle = ResourceBundle.getBundle("META-INF/savanna/roaring");
-        return String.format(body, bundle.getString("skipTesting"));
+        return roar("skipTesting");
     }
 
     @Override

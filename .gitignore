@@ -13,3 +13,10 @@ buildNumber.properties
 
 .idea
 *.iml
+.vscode
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo

@@ -3,7 +3,6 @@ package net.unit8.maven.plugins;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 class LionBannerTest {
     @Test
