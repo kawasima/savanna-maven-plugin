@@ -1,6 +1,7 @@
 package net.unit8.maven.plugins.smell.resolver;
 
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 
 import java.io.IOException;
@@ -16,6 +17,8 @@ public class ConventionBasedResolver implements TestToProductionResolver {
     private static final List<String> PREFIXES = List.of("Test");
 
     private final Map<String, Optional<CompilationUnit>> cache = new ConcurrentHashMap<>();
+    private final JavaParser javaParser = new JavaParser(
+            new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE));
 
     @Override
     public Optional<CompilationUnit> resolve(String testClassName, String packageName, Path sourceDirectory) {
@@ -30,7 +33,7 @@ public class ConventionBasedResolver implements TestToProductionResolver {
             Path productionFile = sourceDirectory.resolve(relativePath);
             if (Files.exists(productionFile)) {
                 try {
-                    return Optional.of(StaticJavaParser.parse(productionFile));
+                    return javaParser.parse(productionFile).getResult();
                 } catch (IOException e) {
                     return Optional.empty();
                 }

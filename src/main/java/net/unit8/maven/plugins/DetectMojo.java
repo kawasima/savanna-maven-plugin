@@ -1,5 +1,6 @@
 package net.unit8.maven.plugins;
 
+import com.github.javaparser.ParseProblemException;
 import net.unit8.maven.plugins.smell.*;
 import net.unit8.maven.plugins.smell.parse.TestClassParser;
 import net.unit8.maven.plugins.smell.report.ConsoleSmellReporter;
@@ -156,7 +157,7 @@ public class DetectMojo extends AbstractMojo {
                     String relativePath = testSourceDirectory.toPath().relativize(testFile).toString();
                     smellsByFile.put(relativePath, fileSmells);
                 }
-            } catch (IOException e) {
+            } catch (IOException | ParseProblemException e) {
                 getLog().warn("Failed to parse " + testFile + ": " + e.getMessage());
             }
         }

@@ -1,6 +1,9 @@
 package net.unit8.maven.plugins.smell.parse;
 
-import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
@@ -25,8 +28,13 @@ public class TestClassParser {
             "AfterEach", "AfterAll"
     );
 
+    private final JavaParser javaParser = new JavaParser(
+            new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE));
+
     public List<DetectionContext> parse(Path sourceFile) throws IOException {
-        CompilationUnit cu = StaticJavaParser.parse(sourceFile);
+        ParseResult<CompilationUnit> result = javaParser.parse(sourceFile);
+        CompilationUnit cu = result.getResult()
+                .orElseThrow(() -> new ParseProblemException(result.getProblems()));
         List<DetectionContext> contexts = new ArrayList<>();
 
         for (ClassOrInterfaceDeclaration clazz : cu.findAll(ClassOrInterfaceDeclaration.class)) {
@@ -55,7 +63,9 @@ public class TestClassParser {
     }
 
     public DetectionContext parseSource(String source) {
-        CompilationUnit cu = StaticJavaParser.parse(source);
+        ParseResult<CompilationUnit> result = javaParser.parse(source);
+        CompilationUnit cu = result.getResult()
+                .orElseThrow(() -> new ParseProblemException(result.getProblems()));
         Optional<ClassOrInterfaceDeclaration> clazzOpt = cu.findFirst(ClassOrInterfaceDeclaration.class);
         if (!clazzOpt.isPresent()) {
             return null;
