@@ -139,6 +139,7 @@ public class DetectMojo extends AbstractMojo {
         TestClassParser parser = new TestClassParser();
         int totalTestMethods = 0;
         int totalDisabledMethods = 0;
+        int parseFailures = 0;
 
         for (Path testFile : testFiles) {
             try {
@@ -158,26 +159,42 @@ public class DetectMojo extends AbstractMojo {
                     smellsByFile.put(relativePath, fileSmells);
                 }
             } catch (IOException | ParseProblemException e) {
+                parseFailures++;
                 getLog().warn("Failed to parse " + testFile + ": " + e.getMessage());
             }
         }
 
         // Project-level check: no executable tests
         if (isSmellEnabled(SmellType.NO_TEST)) {
-            if (testFiles.isEmpty()) {
-                smellsByFile.computeIfAbsent("(project)", k -> new ArrayList<>()).add(
-                        new TestSmell(SmellType.NO_TEST, "(project)", null, 0,
-                                "No test files found in " + testSourceDirectory.getAbsolutePath()));
-            } else if (totalTestMethods == 0) {
-                smellsByFile.computeIfAbsent("(project)", k -> new ArrayList<>()).add(
-                        new TestSmell(SmellType.NO_TEST, "(project)", null, 0,
-                                "Test files exist but no @Test methods found"));
-            } else if (totalTestMethods > 0 && totalTestMethods == totalDisabledMethods) {
-                smellsByFile.computeIfAbsent("(project)", k -> new ArrayList<>()).add(
-                        new TestSmell(SmellType.NO_TEST, "(project)", null, 0,
-                                "All " + totalTestMethods + " test method(s) are @Disabled"));
-            }
+            noTestReason(testFiles.size(), parseFailures, totalTestMethods, totalDisabledMethods,
+                    testSourceDirectory.getAbsolutePath())
+                    .ifPresent(reason -> smellsByFile.computeIfAbsent("(project)", k -> new ArrayList<>())
+                            .add(new TestSmell(SmellType.NO_TEST, "(project)", null, 0, reason)));
         }
+    }
+
+    /**
+     * Decide whether the project-level NO_TEST smell should fire, and with what message.
+     * When every test file failed to parse, the parse warnings already explain why no
+     * test methods were detected, so suppress the smell to avoid misleading reports.
+     */
+    static Optional<String> noTestReason(int totalFiles, int parseFailures,
+                                         int totalTestMethods, int totalDisabledMethods,
+                                         String testSourceDirectory) {
+        if (totalFiles == 0) {
+            return Optional.of("No test files found in " + testSourceDirectory);
+        }
+        int parsedFiles = totalFiles - parseFailures;
+        if (parsedFiles == 0) {
+            return Optional.empty();
+        }
+        if (totalTestMethods == 0) {
+            return Optional.of("Test files exist but no @Test methods found");
+        }
+        if (totalTestMethods == totalDisabledMethods) {
+            return Optional.of("All " + totalTestMethods + " test method(s) are @Disabled");
+        }
+        return Optional.empty();
     }
 
     private List<Path> collectTestFiles() {
