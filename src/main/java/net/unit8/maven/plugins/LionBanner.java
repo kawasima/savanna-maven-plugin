@@ -23,14 +23,6 @@ public class LionBanner {
         return String.format(body, bundle.getString(key));
     }
 
-    public String roarToNoTests() {
-        return roar("noTests");
-    }
-
-    public String roarToSkipTesting() {
-        return roar("skipTesting");
-    }
-
     @Override
     public String toString() {
         return body;
