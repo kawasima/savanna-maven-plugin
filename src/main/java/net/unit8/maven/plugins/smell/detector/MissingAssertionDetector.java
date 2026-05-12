@@ -71,15 +71,18 @@ public class MissingAssertionDetector implements SmellDetector {
     /**
      * True when {@code call} looks like a custom assertion helper that belongs to
      * the test class itself: the call must be either unqualified ({@code verifyX()})
-     * or {@code this}-qualified ({@code this.verifyX()}), and the name must match a
-     * method declared in the test class. This avoids treating collaborator calls
-     * with coincidentally-similar names (e.g. {@code emailService.verifyUser()}) as
-     * assertions.
+     * or {@code this}-qualified ({@code this.verifyX()}), the name must match a
+     * method declared in the test class, AND the name must follow the
+     * assert/verify/check/expect camel-case convention. This avoids treating
+     * collaborator calls with coincidentally-similar names
+     * (e.g. {@code emailService.verifyUser()}) as assertions.
      */
     private boolean isSelfCustomAssertion(MethodCallExpr call, Set<String> classMethodNames) {
         if (call.getScope().isPresent() && !(call.getScope().get() instanceof ThisExpr)) {
             return false;
         }
-        return DetectorHelpers.looksLikeCustomAssertionHelper(call.getNameAsString(), classMethodNames);
+        String name = call.getNameAsString();
+        return classMethodNames.contains(name)
+                && DetectorHelpers.hasCustomAssertionHelperName(name);
     }
 }
