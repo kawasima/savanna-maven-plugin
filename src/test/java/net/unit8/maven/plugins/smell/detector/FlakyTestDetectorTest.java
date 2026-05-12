@@ -104,6 +104,26 @@ class FlakyTestDetectorTest {
     }
 
     @Test
+    void doesNotFlagNonTimeUnitTypeWithSecondsField() {
+        // Regression: FlakyTestDetector.isSleepScope previously matched any
+        // FieldAccessExpr whose name was a TimeUnit constant, regardless of
+        // the qualifier.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        MyTimer.SECONDS.sleep(1);\n" +
+                "        assert true;\n" +
+                "    }\n" +
+                "    static class MyTimer { static MyTimer SECONDS; void sleep(int n) {} }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagUserDefinedSleepOnMockOrHelper() {
         // Regression: previously the detector matched any method named sleep,
         // including user-defined helpers and mock objects.

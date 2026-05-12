@@ -18,23 +18,34 @@ public class IgnoredTestDetector implements SmellDetector {
         String className = context.getTestClass().getNameAsString();
 
         boolean classDisabled = context.getTestClass().getAnnotationByName("Disabled").isPresent();
+        boolean classIgnored = context.getTestClass().getAnnotationByName("Ignore").isPresent();
 
         for (MethodDeclaration method : context.getTestMethods()) {
-            boolean methodDisabled = method.getAnnotationByName("Disabled").isPresent()
-                    || method.getAnnotationByName("Ignore").isPresent();
+            boolean methodDisabled = method.getAnnotationByName("Disabled").isPresent();
+            boolean methodIgnored = method.getAnnotationByName("Ignore").isPresent();
 
-            if (classDisabled || methodDisabled) {
-                String reason = classDisabled && !methodDisabled
-                        ? "Enclosing class is @Disabled"
-                        : "Test method is @Disabled";
-                smells.add(new TestSmell(
-                        SmellType.IGNORED_TEST,
-                        className,
-                        method.getNameAsString(),
-                        method.getBegin().map(p -> p.line).orElse(0),
-                        reason
-                ));
+            if (!(classDisabled || classIgnored || methodDisabled || methodIgnored)) {
+                continue;
             }
+
+            String reason;
+            if (methodDisabled) {
+                reason = "Test method is @Disabled";
+            } else if (methodIgnored) {
+                reason = "Test method is @Ignore";
+            } else if (classDisabled) {
+                reason = "Enclosing class is @Disabled";
+            } else {
+                reason = "Enclosing class is @Ignore";
+            }
+
+            smells.add(new TestSmell(
+                    SmellType.IGNORED_TEST,
+                    className,
+                    method.getNameAsString(),
+                    method.getBegin().map(p -> p.line).orElse(0),
+                    reason
+            ));
         }
         return smells;
     }

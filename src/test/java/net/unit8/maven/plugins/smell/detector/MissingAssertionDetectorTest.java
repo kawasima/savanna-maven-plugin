@@ -83,6 +83,44 @@ class MissingAssertionDetectorTest {
     }
 
     @Test
+    void flagsTestWhereSameNameIsDefinedInClassButCallIsOnCollaborator() {
+        // Regression: previously a call like emailService.verifyUser() would
+        // suppress MISSING_ASSERTION whenever the test class also happened to
+        // declare a verifyUser() helper. Now the call must be unqualified or
+        // this-qualified to count.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        emailService.verifyUser(\"a\");\n" +
+                "    }\n" +
+                "    void verifyUser(String name) {}\n" +
+                "    Object emailService = null;\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.MISSING_ASSERTION);
+    }
+
+    @Test
+    void doesNotFlagThisQualifiedCustomAssert() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        this.assertUserWasCreated();\n" +
+                "    }\n" +
+                "    void assertUserWasCreated() {}\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void flagsTestWhereCustomAssertNameIsNotDefinedInClass() {
         // Regression: previously any method starting with assert/verify/check/expect
         // counted as an assertion, suppressing the smell even when the method was

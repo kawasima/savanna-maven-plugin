@@ -95,11 +95,28 @@ public class TestRunWarDetector implements SmellDetector {
     }
 
     private boolean isSharedFilesystemPath(String path) {
-        return path.startsWith("/tmp")
-                || path.startsWith("/var/")
-                || path.startsWith("/dev/")
-                || path.startsWith("C:\\Temp")
-                || path.startsWith("C:/Temp")
-                || path.startsWith("C:\\Windows\\Temp");
+        return isUnderDir(path, "/tmp")
+                || isUnderDir(path, "/var")
+                || isUnderDir(path, "/dev")
+                || isUnderDir(path, "C:\\Temp")
+                || isUnderDir(path, "C:/Temp")
+                || isUnderDir(path, "C:\\Windows\\Temp")
+                || isUnderDir(path, "C:/Windows/Temp");
+    }
+
+    /**
+     * True when {@code path} equals {@code dir} exactly or is under it
+     * (followed by a path separator). Rejects {@code /tmpfile} for dir
+     * {@code /tmp}.
+     */
+    private boolean isUnderDir(String path, String dir) {
+        if (!path.startsWith(dir)) {
+            return false;
+        }
+        if (path.length() == dir.length()) {
+            return true;
+        }
+        char next = path.charAt(dir.length());
+        return next == '/' || next == '\\';
     }
 }

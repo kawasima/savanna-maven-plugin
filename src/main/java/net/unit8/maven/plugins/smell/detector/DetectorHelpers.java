@@ -84,12 +84,17 @@ final class DetectorHelpers {
 
     /**
      * Extracts the receiver name from a method call, treating {@code foo.bar()} and
-     * {@code this.foo.bar()} as equivalent. For chained field accesses like
-     * {@code MyEnum.VALUE.compute()} or {@code pkg.Cls.STATIC.compute()}, returns
-     * the root identifier ({@code MyEnum} / {@code pkg}) so that two distinct enum
-     * constants or static fields of the same type don't look like different
-     * collaborators. Returns null if the call has no scope (implicit {@code this})
-     * or a non-name scope.
+     * {@code this.foo.bar()} as equivalent. For chained field accesses the goal
+     * is to return a stable collaborator identity:
+     * <ul>
+     *   <li>{@code MyEnum.VALUE.compute()} → {@code "MyEnum"} (enum constants of
+     *       the same type share an identity)</li>
+     *   <li>{@code com.foo.Bar.baz()} → {@code "Bar"} (the class, not the
+     *       package root)</li>
+     * </ul>
+     * Heuristic: among the identifiers in the chain, return the rightmost one
+     * whose name looks like a type ({@code UpperCamelCase}); if none, return the
+     * root identifier. Returns null if the chain doesn't bottom out in a NameExpr.
      */
     static String receiverName(MethodCallExpr call) {
         Expression scope = call.getScope().orElse(null);
@@ -104,25 +109,64 @@ final class DetectorHelpers {
             if (fae.getScope() instanceof ThisExpr) {
                 return fae.getNameAsString();
             }
-            return fieldAccessRoot(fae);
+            return chainCollaboratorName(fae);
         }
         return null;
     }
 
     /**
-     * Returns the root name of a chained FieldAccessExpr — i.e. the leftmost
-     * identifier in {@code a.b.c.d}. Returns null if the chain bottoms out in
-     * something other than a NameExpr (e.g. {@code foo().b.c}).
+     * Walks the field-access chain and returns the rightmost identifier that
+     * looks like a type name. Falls back to the leftmost identifier if none of
+     * the chain steps look like a type.
      */
-    private static String fieldAccessRoot(FieldAccessExpr fae) {
-        Expression cursor = fae.getScope();
+    private static String chainCollaboratorName(FieldAccessExpr fae) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        Expression cursor = fae;
         while (cursor instanceof FieldAccessExpr) {
-            cursor = ((FieldAccessExpr) cursor).getScope();
+            FieldAccessExpr current = (FieldAccessExpr) cursor;
+            names.add(current.getNameAsString());
+            cursor = current.getScope();
         }
+        String root;
         if (cursor instanceof NameExpr) {
-            return ((NameExpr) cursor).getNameAsString();
+            root = ((NameExpr) cursor).getNameAsString();
+        } else {
+            return null;
         }
-        return null;
+        // names is right-to-left; the rightmost-type-like identifier is the
+        // first non-CONSTANT name we encounter walking from left (= root) to
+        // right (= fae). Reverse first.
+        java.util.Collections.reverse(names);
+        String collaborator = root;
+        for (String n : names) {
+            if (looksLikeTypeName(n)) {
+                collaborator = n;
+            }
+        }
+        // Special case: if root itself looks like a type AND the very next
+        // step is an ALL_UPPER constant (enum constant pattern), prefer root.
+        // E.g. MyEnum.VALUE_A.compute() — collaborator above would have been
+        // set to "MyEnum" by the loop (root is type-like) and never overridden
+        // because VALUE_A and any further steps aren't type-like. Good.
+        return collaborator;
+    }
+
+    /**
+     * Rough heuristic: an UpperCamelCase identifier that is not ALL_UPPER_SNAKE.
+     * Used to distinguish class names ({@code Bar}, {@code MyEnum}) from
+     * constants ({@code VALUE_A}) and package segments ({@code com}, {@code foo}).
+     */
+    private static boolean looksLikeTypeName(String name) {
+        if (name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
+            return false;
+        }
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (Character.isLowerCase(c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

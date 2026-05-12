@@ -3,7 +3,6 @@ package net.unit8.maven.plugins.smell.detector;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.stmt.DoStmt;
 import com.github.javaparser.ast.stmt.ForEachStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
 import com.github.javaparser.ast.stmt.IfStmt;
@@ -56,7 +55,8 @@ public class RottenGreenTestDetector implements SmellDetector {
     /**
      * True when this call lies inside any construct that can skip its body —
      * if/switch/try-catch (the catch arm is conditional on a throw) or any loop
-     * that may iterate zero times.
+     * that may iterate zero times. {@code do/while} is deliberately omitted:
+     * its body runs at least once.
      */
     private boolean isInsideConditional(MethodCallExpr call) {
         Node current = call.getParentNode().orElse(null);
@@ -65,8 +65,7 @@ public class RottenGreenTestDetector implements SmellDetector {
                     || current instanceof SwitchStmt
                     || current instanceof ForStmt
                     || current instanceof ForEachStmt
-                    || current instanceof WhileStmt
-                    || current instanceof DoStmt) {
+                    || current instanceof WhileStmt) {
                 return true;
             }
             if (current instanceof TryStmt) {

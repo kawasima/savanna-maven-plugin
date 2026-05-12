@@ -1,6 +1,8 @@
 package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
@@ -27,8 +29,18 @@ public class ResourceOptimismDetector implements SmellDetector {
             "newInputStream", "newBufferedReader", "lines"
     );
 
-    private static final Set<String> EXISTS_METHODS = Set.of(
-            "exists", "isFile", "isDirectory", "notExists", "isReadable"
+    /**
+     * Static existence-check methods on {@code java.nio.file.Files}.
+     */
+    private static final Set<String> FILES_EXISTS_METHODS = Set.of(
+            "exists", "notExists", "isReadable", "isRegularFile", "isDirectory"
+    );
+
+    /**
+     * Instance existence-check methods on {@code java.io.File} / {@code java.nio.file.Path}.
+     */
+    private static final Set<String> INSTANCE_EXISTS_METHODS = Set.of(
+            "exists", "isFile", "isDirectory"
     );
 
     @Override
@@ -77,6 +89,35 @@ public class ResourceOptimismDetector implements SmellDetector {
 
     private boolean hasExistenceCheck(MethodDeclaration method) {
         return method.findAll(MethodCallExpr.class).stream()
-                .anyMatch(call -> EXISTS_METHODS.contains(call.getNameAsString()));
+                .anyMatch(this::isExistenceCheck);
+    }
+
+    private boolean isExistenceCheck(MethodCallExpr call) {
+        String name = call.getNameAsString();
+        Expression scope = call.getScope().orElse(null);
+        if (scope == null) {
+            return false;
+        }
+        if (FILES_EXISTS_METHODS.contains(name) && scopeNameIs(scope, "Files")) {
+            return true;
+        }
+        // Instance check: anything.exists(), anything.isFile() — accept only when
+        // the receiver is a simple identifier (i.e. a local variable / field),
+        // not a chained call result, to avoid matching unrelated APIs like
+        // some.builder().exists().
+        if (INSTANCE_EXISTS_METHODS.contains(name) && scope instanceof NameExpr) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean scopeNameIs(Expression scope, String expected) {
+        if (scope instanceof NameExpr) {
+            return ((NameExpr) scope).getNameAsString().equals(expected);
+        }
+        if (scope instanceof FieldAccessExpr) {
+            return ((FieldAccessExpr) scope).getNameAsString().equals(expected);
+        }
+        return false;
     }
 }

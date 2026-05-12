@@ -59,6 +59,32 @@ class VerboseTestDetectorTest {
     }
 
     @Test
+    void doesNotInflateCountFromNestedBlocks() {
+        // Regression: findAll(Statement.class) used to also count the
+        // surrounding BlockStmt and any nested if/try bodies, inflating the
+        // statement count for short tests with control flow.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testNested() {\n" +
+                "        int x = 1;\n" +
+                "        if (x > 0) {\n" +
+                "            assertEquals(1, x);\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+        );
+        VerboseTestDetector detector = new VerboseTestDetector(3);
+        List<TestSmell> smells = detector.detect(ctx);
+        // 3 real statements (ExpressionStmt, IfStmt, ExpressionStmt) — at
+        // threshold, must not be flagged. The earlier implementation also
+        // counted the two BlockStmts (method body + if-then), pushing to 5.
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagShortTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
