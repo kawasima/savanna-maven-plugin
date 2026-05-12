@@ -74,7 +74,16 @@ public class ObscureInlineSetupDetector implements SmellDetector {
         if (!(stmt instanceof ExpressionStmt)) {
             return false;
         }
-        return stmt.findAll(MethodCallExpr.class).stream()
-                .anyMatch(call -> ASSERTION_METHODS.contains(call.getNameAsString()));
+        // Only consider the *top-level* call of the expression an assertion.
+        // Assertions buried in lambdas (forEach, peek, etc.) are still setup work.
+        com.github.javaparser.ast.expr.Expression expr = ((ExpressionStmt) stmt).getExpression();
+        if (!(expr instanceof MethodCallExpr)) {
+            return false;
+        }
+        MethodCallExpr top = (MethodCallExpr) expr;
+        if (ASSERTION_METHODS.contains(top.getNameAsString())) {
+            return true;
+        }
+        return DetectorHelpers.isAssertionCall(top);
     }
 }

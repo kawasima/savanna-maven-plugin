@@ -50,6 +50,40 @@ class GeneralFixtureDetectorTest {
     }
 
     @Test
+    void detectsFieldAssignedAndUsedViaThis() {
+        // extra is assigned via this.extra and tests reference it via this.extra
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import org.junit.jupiter.api.BeforeEach;\n" +
+                "class FooTest {\n" +
+                "    private String shared;\n" +
+                "    private int extra;\n" +
+                "    @BeforeEach\n" +
+                "    void setUp() {\n" +
+                "        this.shared = \"hello\";\n" +
+                "        this.extra = 42;\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testA() {\n" +
+                "        assert this.shared != null;\n" +
+                "        assert this.extra == 42;\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testB() {\n" +
+                "        assert this.shared != null;\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testC() {\n" +
+                "        assert this.shared != null;\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getMessage()).contains("extra");
+    }
+
+    @Test
     void doesNotFlagWhenAllFieldsUsedByMostTests() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

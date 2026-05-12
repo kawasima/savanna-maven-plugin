@@ -33,6 +33,62 @@ class ResourceOptimismDetectorTest {
     }
 
     @Test
+    void doesNotFlagWriters() {
+        // FileWriter/FileOutputStream CREATE the file; an existence check is
+        // not expected before writing.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testWrite() throws Exception {\n" +
+                "        FileWriter w = new FileWriter(\"out.txt\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void detectsFilesReadWithoutExists() {
+        // Files.readAllBytes / Files.newInputStream — modern NIO equivalents
+        // also need an existence check.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.nio.file.Files;\n" +
+                "import java.nio.file.Paths;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() throws Exception {\n" +
+                "        byte[] data = Files.readAllBytes(Paths.get(\"data.bin\"));\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void doesNotFlagFilesReadWithExistsCheck() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.nio.file.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() throws Exception {\n" +
+                "        Path p = Paths.get(\"data.bin\");\n" +
+                "        if (Files.exists(p)) {\n" +
+                "            byte[] data = Files.readAllBytes(p);\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagWithExistsCheck() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

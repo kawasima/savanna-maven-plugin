@@ -37,6 +37,52 @@ class RottenGreenTestDetectorTest {
     }
 
     @Test
+    void detectsAssertionOnlyInsideForLoop() {
+        // A for-loop that may iterate zero times — the assertion might never run.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRotten() {\n" +
+                "        java.util.List<Integer> items = getItems();\n" +
+                "        for (Integer i : items) {\n" +
+                "            assertEquals(1, i);\n" +
+                "        }\n" +
+                "    }\n" +
+                "    java.util.List<Integer> getItems() { return java.util.Collections.emptyList(); }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.ROTTEN_GREEN_TEST);
+    }
+
+    @Test
+    void detectsAssertArrayEqualsOnlyInsideForLoop() {
+        // Regression: a private hardcoded set used to omit assertArrayEquals,
+        // so a test whose only assertion was assertArrayEquals inside a loop
+        // would be silently ignored.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRotten() {\n" +
+                "        int[][] rows = getRows();\n" +
+                "        for (int[] row : rows) {\n" +
+                "            assertArrayEquals(new int[]{1, 2}, row);\n" +
+                "        }\n" +
+                "    }\n" +
+                "    int[][] getRows() { return new int[0][]; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.ROTTEN_GREEN_TEST);
+    }
+
+    @Test
     void doesNotFlagUnconditionalAssertion() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

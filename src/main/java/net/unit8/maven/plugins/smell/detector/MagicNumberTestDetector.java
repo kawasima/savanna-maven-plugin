@@ -17,8 +17,18 @@ public class MagicNumberTestDetector implements SmellDetector {
     private static final Set<String> ASSERTION_METHODS = Set.of(
             "assertEquals", "assertNotEquals",
             "assertSame", "assertNotSame",
-            "assertArrayEquals",
+            "assertArrayEquals", "assertIterableEquals", "assertLinesMatch",
             "assertThat"
+    );
+
+    private static final Set<String> ASSERTJ_TERMINALS = Set.of(
+            "isEqualTo", "isNotEqualTo",
+            "isLessThan", "isLessThanOrEqualTo",
+            "isGreaterThan", "isGreaterThanOrEqualTo",
+            "isCloseTo", "isBetween",
+            "hasSize", "hasSizeGreaterThan", "hasSizeLessThan",
+            "contains", "containsExactly", "containsOnly",
+            "startsWith", "endsWith"
     );
 
     private static final Set<String> EXCLUDED_VALUES = new HashSet<>(Arrays.asList(
@@ -41,7 +51,7 @@ public class MagicNumberTestDetector implements SmellDetector {
 
         for (MethodDeclaration method : context.getTestMethods()) {
             List<MethodCallExpr> assertions = method.findAll(MethodCallExpr.class,
-                    call -> ASSERTION_METHODS.contains(call.getNameAsString()));
+                    this::isAssertionCall);
 
             for (MethodCallExpr assertion : assertions) {
                 boolean hasMagicNumber = assertion.getArguments().stream()
@@ -60,6 +70,29 @@ public class MagicNumberTestDetector implements SmellDetector {
             }
         }
         return smells;
+    }
+
+    private boolean isAssertionCall(MethodCallExpr call) {
+        String name = call.getNameAsString();
+        if (ASSERTION_METHODS.contains(name)) {
+            return true;
+        }
+        if (ASSERTJ_TERMINALS.contains(name)) {
+            return rootedInAssertThat(call);
+        }
+        return false;
+    }
+
+    private boolean rootedInAssertThat(MethodCallExpr call) {
+        Expression scope = call.getScope().orElse(null);
+        while (scope instanceof MethodCallExpr) {
+            MethodCallExpr inner = (MethodCallExpr) scope;
+            if ("assertThat".equals(inner.getNameAsString())) {
+                return true;
+            }
+            scope = inner.getScope().orElse(null);
+        }
+        return false;
     }
 
     private boolean containsMagicNumber(Expression expr) {

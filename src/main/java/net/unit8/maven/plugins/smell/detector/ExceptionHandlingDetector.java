@@ -20,9 +20,10 @@ public class ExceptionHandlingDetector implements SmellDetector {
 
         for (MethodDeclaration method : context.getTestMethods()) {
             List<TryStmt> tryStmts = method.findAll(TryStmt.class);
-            // try-with-resources without catch is acceptable
+            // Flag only plain try/catch — try-with-resources (with or without
+            // a catch) is for resource management, not test branching.
             boolean hasTryCatch = tryStmts.stream()
-                    .anyMatch(t -> !t.getCatchClauses().isEmpty());
+                    .anyMatch(t -> !t.getCatchClauses().isEmpty() && t.getResources().isEmpty());
 
             if (hasTryCatch) {
                 smells.add(new TestSmell(

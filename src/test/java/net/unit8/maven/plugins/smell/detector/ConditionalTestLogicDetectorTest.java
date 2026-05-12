@@ -50,6 +50,58 @@ class ConditionalTestLogicDetectorTest {
     }
 
     @Test
+    void detectsDoWhile() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        int i = 0;\n" +
+                "        do { i++; } while (i < 3);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void detectsTernaryExpression() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        int x = (1 == 1) ? 1 : 2;\n" +
+                "        assertEquals(1, x);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void doesNotFlagIfInsideAssertThrowsLambda() {
+        // The conditional is part of the production code being asserted, not test logic.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testThrows() {\n" +
+                "        assertThrows(RuntimeException.class, () -> {\n" +
+                "            if (System.currentTimeMillis() > 0) throw new RuntimeException();\n" +
+                "        });\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagSimpleTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

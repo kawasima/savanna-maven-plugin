@@ -53,6 +53,42 @@ class MagicNumberTestDetectorTest {
     }
 
     @Test
+    void detectsMagicNumberInAssertJChain() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testCalc() {\n" +
+                "        assertThat(compute()).isEqualTo(42);\n" +
+                "    }\n" +
+                "    int compute() { return 42; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.MAGIC_NUMBER_TEST);
+    }
+
+    @Test
+    void detectsMagicNumberInAssertJHasSize() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.util.List;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testList() {\n" +
+                "        assertThat(items()).hasSize(7);\n" +
+                "    }\n" +
+                "    List<Integer> items() { return null; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
     void doesNotFlagNegativeOne() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

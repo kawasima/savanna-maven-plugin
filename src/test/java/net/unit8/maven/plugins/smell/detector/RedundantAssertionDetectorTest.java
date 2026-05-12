@@ -48,6 +48,38 @@ class RedundantAssertionDetectorTest {
     }
 
     @Test
+    void detectsAssertJIsTrueWithLiteralTrue() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRedundant() {\n" +
+                "        assertThat(true).isTrue();\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void detectsAssertJIsEqualToSameValue() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRedundant() {\n" +
+                "        assertThat(\"hello\").isEqualTo(\"hello\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
     void doesNotFlagMeaningfulAssertion() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

@@ -2,7 +2,6 @@ package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.*;
@@ -15,8 +14,10 @@ import java.util.stream.Collectors;
 public class LackOfCohesionDetector implements SmellDetector {
     private static final Set<String> EXCLUDED_SCOPES = Set.of(
             "System", "Arrays", "Collections", "Objects", "Math",
-            "Assertions", "Assert", "Mockito",
-            "String", "Integer", "Long", "Double", "Boolean"
+            "Assertions", "Assert", "Mockito", "BDDMockito",
+            "String", "Integer", "Long", "Double", "Boolean",
+            "Optional", "Stream", "List", "Map", "Set",
+            "Files", "Paths", "LocalDate", "LocalDateTime", "Instant", "Duration"
     );
 
     @Override
@@ -33,13 +34,13 @@ public class LackOfCohesionDetector implements SmellDetector {
             return smells;
         }
 
-        // For each test method, collect the set of scopes it interacts with
+        // For each test method, collect the set of scopes it interacts with.
+        // `receiverName` treats `x.y()` and `this.x.y()` as the same receiver `x`.
         List<Set<String>> methodScopes = new ArrayList<>();
         for (MethodDeclaration method : context.getTestMethods()) {
             Set<String> scopes = method.findAll(MethodCallExpr.class).stream()
-                    .filter(call -> call.getScope().isPresent())
-                    .filter(call -> call.getScope().get() instanceof NameExpr)
-                    .map(call -> ((NameExpr) call.getScope().get()).getNameAsString())
+                    .map(DetectorHelpers::receiverName)
+                    .filter(Objects::nonNull)
                     .filter(scope -> !EXCLUDED_SCOPES.contains(scope))
                     .filter(scope -> !scope.equals("this"))
                     .collect(Collectors.toSet());

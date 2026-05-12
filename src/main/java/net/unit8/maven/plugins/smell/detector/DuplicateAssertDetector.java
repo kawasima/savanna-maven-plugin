@@ -28,7 +28,8 @@ public class DuplicateAssertDetector implements SmellDetector {
 
         for (MethodDeclaration method : context.getTestMethods()) {
             List<MethodCallExpr> assertions = method.findAll(MethodCallExpr.class,
-                    call -> ASSERTION_METHODS.contains(call.getNameAsString()));
+                    call -> ASSERTION_METHODS.contains(call.getNameAsString())
+                            || DetectorHelpers.isAssertionCall(call));
 
             Set<String> seen = new HashSet<>();
             Set<String> duplicated = new LinkedHashSet<>();

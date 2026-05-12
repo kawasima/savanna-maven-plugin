@@ -48,6 +48,61 @@ class MissingAssertionDetectorTest {
     }
 
     @Test
+    void doesNotFlagTestWithMockitoVerify() {
+        // A test that only calls Mockito.verify(...) still has an implicit
+        // assertion — flagging this would noise-spam interaction-based tests.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.mockito.Mockito.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        verify(mock).save();\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void doesNotFlagTestWithCustomAssertHelper() {
+        // assertUser(...) is a custom helper that delegates to real assertions.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        assertUserWasCreated();\n" +
+                "    }\n" +
+                "    void assertUserWasCreated() {}\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void flagsTestWhereCustomAssertNameIsNotDefinedInClass() {
+        // Regression: previously any method starting with assert/verify/check/expect
+        // counted as an assertion, suppressing the smell even when the method was
+        // actually a production helper (e.g. verifyEmailToken on a service).
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        emailService.verifyEmailToken(\"abc\");\n" +
+                "    }\n" +
+                "    Object emailService = null;\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.MISSING_ASSERTION);
+    }
+
+    @Test
     void doesNotFlagTestWithAssertThat() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

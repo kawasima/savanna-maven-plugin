@@ -17,14 +17,22 @@ public class IgnoredTestDetector implements SmellDetector {
         List<TestSmell> smells = new ArrayList<>();
         String className = context.getTestClass().getNameAsString();
 
+        boolean classDisabled = context.getTestClass().getAnnotationByName("Disabled").isPresent();
+
         for (MethodDeclaration method : context.getTestMethods()) {
-            if (method.getAnnotationByName("Disabled").isPresent()) {
+            boolean methodDisabled = method.getAnnotationByName("Disabled").isPresent()
+                    || method.getAnnotationByName("Ignore").isPresent();
+
+            if (classDisabled || methodDisabled) {
+                String reason = classDisabled && !methodDisabled
+                        ? "Enclosing class is @Disabled"
+                        : "Test method is @Disabled";
                 smells.add(new TestSmell(
                         SmellType.IGNORED_TEST,
                         className,
                         method.getNameAsString(),
                         method.getBegin().map(p -> p.line).orElse(0),
-                        "Test method is @Disabled"
+                        reason
                 ));
             }
         }

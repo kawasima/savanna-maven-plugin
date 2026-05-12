@@ -36,6 +36,29 @@ class VerboseTestDetectorTest {
     }
 
     @Test
+    void doesNotFlagShortTestWithManyComments() {
+        // 30+ source lines of mostly comments should not trip the verbose detector
+        // — what matters is statements, not physical lines.
+        StringBuilder sb = new StringBuilder();
+        sb.append("import org.junit.jupiter.api.Test;\n");
+        sb.append("import static org.junit.jupiter.api.Assertions.*;\n");
+        sb.append("class FooTest {\n");
+        sb.append("    @Test\n");
+        sb.append("    void testCommented() {\n");
+        for (int i = 0; i < 35; i++) {
+            sb.append("        // line ").append(i).append("\n");
+        }
+        sb.append("        assertEquals(1, 1);\n");
+        sb.append("    }\n");
+        sb.append("}\n");
+
+        VerboseTestDetector detector = new VerboseTestDetector(10);
+        DetectionContext ctx = parser.parseSource(sb.toString());
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagShortTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
