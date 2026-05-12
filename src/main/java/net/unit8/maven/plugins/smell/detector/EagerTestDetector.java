@@ -3,7 +3,6 @@ package net.unit8.maven.plugins.smell.detector;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.*;
@@ -48,9 +47,8 @@ public class EagerTestDetector implements SmellDetector {
                     .forEach(v -> localResultVars.add(v.getNameAsString()));
 
             Set<String> targetScopes = method.findAll(MethodCallExpr.class).stream()
-                    .filter(call -> call.getScope().isPresent())
-                    .filter(call -> call.getScope().get() instanceof NameExpr)
-                    .map(call -> ((NameExpr) call.getScope().get()).getNameAsString())
+                    .map(DetectorHelpers::receiverName)
+                    .filter(Objects::nonNull)
                     .filter(scope -> !EXCLUDED_SCOPES.contains(scope))
                     .filter(scope -> !scope.equals("this"))
                     .filter(scope -> !localResultVars.contains(scope))

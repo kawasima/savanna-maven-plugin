@@ -34,6 +34,45 @@ class DuplicateAssertDetectorTest {
     }
 
     @Test
+    void detectsDuplicateAssertJTerminalOnSameValue() {
+        // The same terminal applied to assertThat of the same expression twice
+        // is a duplicate assertion even though only the chain root differs slightly.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testDup() {\n" +
+                "        assertThat(getValue()).hasSize(3);\n" +
+                "        assertThat(getValue()).hasSize(3);\n" +
+                "    }\n" +
+                "    java.util.List<Integer> getValue() { return null; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void detectsDuplicateAssertJChains() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testDup() {\n" +
+                "        assertThat(getValue()).isEqualTo(1);\n" +
+                "        assertThat(getValue()).isEqualTo(1);\n" +
+                "    }\n" +
+                "    int getValue() { return 1; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.DUPLICATE_ASSERT);
+    }
+
+    @Test
     void doesNotFlagDistinctAssertions() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

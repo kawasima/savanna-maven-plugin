@@ -32,6 +32,39 @@ class HiddenDependencyDetectorTest {
     }
 
     @Test
+    void detectsSystemGetProperty() {
+        // A test reading System properties depends on global environment state.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testEnv() {\n" +
+                "        String home = System.getProperty(\"user.home\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.HIDDEN_DEPENDENCY);
+    }
+
+    @Test
+    void detectsSystemGetenv() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testEnv() {\n" +
+                "        String path = System.getenv(\"PATH\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.HIDDEN_DEPENDENCY);
+    }
+
+    @Test
     void doesNotFlagNormalMethodCall() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

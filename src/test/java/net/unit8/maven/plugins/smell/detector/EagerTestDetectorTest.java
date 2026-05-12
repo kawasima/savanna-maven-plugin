@@ -52,6 +52,26 @@ class EagerTestDetectorTest {
     }
 
     @Test
+    void detectsEagerTestThroughThisQualifiedCollaborators() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testEager() {\n" +
+                "        this.userService.create();\n" +
+                "        this.orderService.submit();\n" +
+                "        this.emailService.send();\n" +
+                "        assertEquals(1, 1);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.EAGER_TEST);
+    }
+
+    @Test
     void doesNotCountLocalReturnValueVariablesAsCollaborators() {
         // service.create() returns user, service.findById() returns found
         // These local vars should not count as separate collaborators

@@ -32,6 +32,27 @@ class RedundantPrintDetectorTest {
     }
 
     @Test
+    void detectsPrintStackTrace() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        try {\n" +
+                "            doStuff();\n" +
+                "        } catch (Exception e) {\n" +
+                "            e.printStackTrace();\n" +
+                "        }\n" +
+                "    }\n" +
+                "    void doStuff() throws Exception {}\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.REDUNDANT_PRINT);
+    }
+
+    @Test
     void doesNotFlagTestWithoutPrint() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

@@ -3,7 +3,9 @@ package net.unit8.maven.plugins.smell.detector;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.ThisExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.*;
@@ -35,8 +37,7 @@ public class TestMaverickDetector implements SmellDetector {
         }
 
         for (MethodDeclaration method : context.getTestMethods()) {
-            boolean usesAnyFixture = method.findAll(NameExpr.class).stream()
-                    .anyMatch(ne -> fixtureFields.contains(ne.getNameAsString()));
+            boolean usesAnyFixture = referencesAnyFixture(method, fixtureFields);
 
             if (!usesAnyFixture) {
                 smells.add(new TestSmell(
@@ -49,5 +50,16 @@ public class TestMaverickDetector implements SmellDetector {
             }
         }
         return smells;
+    }
+
+    private boolean referencesAnyFixture(MethodDeclaration method, Set<String> fixtureFields) {
+        boolean viaName = method.findAll(NameExpr.class).stream()
+                .anyMatch(ne -> fixtureFields.contains(ne.getNameAsString()));
+        if (viaName) {
+            return true;
+        }
+        return method.findAll(FieldAccessExpr.class).stream()
+                .anyMatch(fae -> fae.getScope() instanceof ThisExpr
+                        && fixtureFields.contains(fae.getNameAsString()));
     }
 }

@@ -85,6 +85,26 @@ class AssertionRouletteDetectorTest {
     }
 
     @Test
+    void countsAssertJChainAsSingleAssertion() {
+        // A chained AssertJ assertion `.isEqualTo(y).hasSize(3)` is conceptually
+        // one logical check, not two — should NOT be flagged as roulette.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.util.List;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        List<Integer> xs = null;\n" +
+                "        assertThat(xs).isNotNull().hasSize(3).contains(1);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagAssertJAssertionsWithAs() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

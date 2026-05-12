@@ -14,7 +14,6 @@ public class ResourceLeakageDetector implements SmellDetector {
             "BufferedReader", "BufferedWriter",
             "FileReader", "FileWriter",
             "InputStreamReader", "OutputStreamWriter",
-            "ByteArrayInputStream", "ByteArrayOutputStream",
             "ObjectInputStream", "ObjectOutputStream",
             "PrintWriter", "PrintStream",
             "Scanner", "Connection",
@@ -41,23 +40,32 @@ public class ResourceLeakageDetector implements SmellDetector {
                 continue;
             }
 
-            // Check if all resource creations are inside try-with-resources
+            // A resource is safe ONLY when it is itself one of the resources
+            // declared in the try-with-resources header (or a descendant of
+            // such a resource's initializer — e.g. the inner FileReader inside
+            // `new BufferedReader(new FileReader(...))`). Anything created in
+            // the try BODY is still leaked.
             for (ObjectCreationExpr creation : creations) {
-                boolean inTryWithResources = creation.findAncestor(TryStmt.class)
-                        .filter(t -> !t.getResources().isEmpty())
-                        .isPresent();
-
-                if (!inTryWithResources) {
-                    smells.add(new TestSmell(
-                            SmellType.RESOURCE_LEAKAGE,
-                            className,
-                            method.getNameAsString(),
-                            creation.getBegin().map(p -> p.line).orElse(0),
-                            "Resource '" + creation.getTypeAsString() + "' not in try-with-resources"
-                    ));
+                if (isManagedByTryWithResources(creation)) {
+                    continue;
                 }
+                smells.add(new TestSmell(
+                        SmellType.RESOURCE_LEAKAGE,
+                        className,
+                        method.getNameAsString(),
+                        creation.getBegin().map(p -> p.line).orElse(0),
+                        "Resource '" + creation.getTypeAsString() + "' not in try-with-resources"
+                ));
             }
         }
         return smells;
+    }
+
+    private boolean isManagedByTryWithResources(ObjectCreationExpr creation) {
+        return creation.findAncestor(TryStmt.class)
+                .map(tryStmt -> tryStmt.getResources().stream()
+                        .anyMatch(resource -> resource == creation
+                                || resource.findAll(ObjectCreationExpr.class).contains(creation)))
+                .orElse(false);
     }
 }

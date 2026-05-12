@@ -4,7 +4,6 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 import net.unit8.maven.plugins.smell.resolver.ConventionBasedResolver;
 
@@ -65,14 +64,13 @@ public class IndirectTestingDetector implements SmellDetector {
 
         for (MethodDeclaration method : context.getTestMethods()) {
             Map<String, Long> scopeCounts = method.findAll(MethodCallExpr.class).stream()
-                    .filter(call -> call.getScope().isPresent())
-                    .filter(call -> call.getScope().get() instanceof NameExpr)
-                    .map(call -> ((NameExpr) call.getScope().get()).getNameAsString())
+                    .map(DetectorHelpers::receiverName)
+                    .filter(Objects::nonNull)
                     .filter(scope -> !EXCLUDED_SCOPES.contains(scope))
                     .filter(scope -> !scope.equals("this"))
                     .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
 
-            if (scopeCounts.size() < 2) {
+            if (scopeCounts.isEmpty()) {
                 continue;
             }
 
@@ -81,6 +79,11 @@ public class IndirectTestingDetector implements SmellDetector {
                     .filter(e -> expectedScopes.contains(e.getKey()))
                     .mapToLong(Map.Entry::getValue)
                     .sum();
+
+            // Need at least a couple of production-style calls before judging
+            if (totalCalls < 2) {
+                continue;
+            }
 
             // Only flag if expected class receives less than 30% of the calls
             if (expectedCalls * 100 / totalCalls < 30) {

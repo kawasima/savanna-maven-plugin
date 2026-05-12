@@ -33,6 +33,43 @@ class IgnoredTestDetectorTest {
     }
 
     @Test
+    void detectsClassLevelDisabled() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import org.junit.jupiter.api.Disabled;\n" +
+                "@Disabled\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void firstTest() { assert true; }\n" +
+                "    @Test\n" +
+                "    void secondTest() { assert true; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        // Class-level @Disabled disables every test in the class — both should be reported.
+        assertThat(smells).hasSize(2);
+        assertThat(smells).allMatch(s -> s.getType() == SmellType.IGNORED_TEST);
+    }
+
+    @Test
+    void detectsJUnit4Ignore() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.Test;\n" +
+                "import org.junit.Ignore;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    @Ignore\n" +
+                "    public void skippedTest() {\n" +
+                "        assert true;\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.IGNORED_TEST);
+    }
+
+    @Test
     void doesNotFlagEnabledTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

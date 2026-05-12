@@ -49,6 +49,24 @@ class SleepyTestDetectorTest {
     }
 
     @Test
+    void detectsQualifiedTimeUnitSleep() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.util.concurrent.TimeUnit;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() throws Exception {\n" +
+                "        TimeUnit.SECONDS.sleep(1);\n" +
+                "        assert true;\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.SLEEPY_TEST);
+    }
+
+    @Test
     void doesNotFlagTestWithoutSleep() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

@@ -35,6 +35,44 @@ class ConstructorInitializationDetectorTest {
     }
 
     @Test
+    void doesNotFlagJUnit5InjectionConstructor() {
+        // JUnit 5 supports constructor injection of TestInfo/TestReporter etc.
+        // A constructor that ONLY captures injected parameters into fields is not
+        // an "initialization smell" — it's the only way to receive these objects.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import org.junit.jupiter.api.TestInfo;\n" +
+                "class FooTest {\n" +
+                "    private final TestInfo info;\n" +
+                "    FooTest(TestInfo info) {\n" +
+                "        this.info = info;\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        assert true;\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void doesNotFlagEmptyConstructorBody() {
+        // A no-op explicit constructor is just a declaration, not an initialization smell.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    FooTest() { /* nothing */ }\n" +
+                "    @Test\n" +
+                "    void testSomething() { assert true; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagTestWithoutConstructor() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

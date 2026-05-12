@@ -35,6 +35,28 @@ class ExceptionHandlingDetectorTest {
     }
 
     @Test
+    void doesNotFlagTryWithResourcesPlusCatch() {
+        // try-with-resources + catch combines resource cleanup with handling
+        // — the catch is for IOException from close(), not test branching.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() {\n" +
+                "        try (InputStream is = new ByteArrayInputStream(new byte[0])) {\n" +
+                "            is.read();\n" +
+                "        } catch (IOException e) {\n" +
+                "            org.junit.jupiter.api.Assertions.fail(e);\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagTryWithResources() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

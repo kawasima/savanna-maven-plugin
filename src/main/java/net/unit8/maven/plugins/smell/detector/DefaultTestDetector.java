@@ -1,13 +1,16 @@
 package net.unit8.maven.plugins.smell.detector;
 
+import com.github.javaparser.ast.body.MethodDeclaration;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class DefaultTestDetector implements SmellDetector {
-    private static final Set<String> DEFAULT_NAMES = Set.of(
+    private static final Set<String> DEFAULT_CLASS_NAMES = Set.of(
+            "AppTest",
             "ExampleTest", "ExampleTests",
             "ExampleUnitTest", "ExampleInstrumentedTest",
             "SampleTest", "SampleTests",
@@ -15,6 +18,14 @@ public class DefaultTestDetector implements SmellDetector {
             "TestClass", "NewTest",
             "MainActivityTest"
     );
+
+    private static final Set<String> DEFAULT_METHOD_NAMES = Set.of(
+            "test", "testMethod", "testCase",
+            "newTest", "myTest", "sampleTest", "exampleTest"
+    );
+
+    private static final Pattern NUMBERED_TEST_PATTERN =
+            Pattern.compile("^test(Method|Case)?\\d+$");
 
     @Override
     public SmellType type() {
@@ -26,7 +37,7 @@ public class DefaultTestDetector implements SmellDetector {
         List<TestSmell> smells = new ArrayList<>();
         String className = context.getTestClass().getNameAsString();
 
-        if (DEFAULT_NAMES.contains(className)) {
+        if (DEFAULT_CLASS_NAMES.contains(className)) {
             smells.add(new TestSmell(
                     SmellType.DEFAULT_TEST,
                     className,
@@ -35,6 +46,24 @@ public class DefaultTestDetector implements SmellDetector {
                     "Test class has a default/IDE-generated name '" + className + "'"
             ));
         }
+
+        for (MethodDeclaration method : context.getTestMethods()) {
+            String methodName = method.getNameAsString();
+            if (isDefaultMethodName(methodName)) {
+                smells.add(new TestSmell(
+                        SmellType.DEFAULT_TEST,
+                        className,
+                        methodName,
+                        method.getBegin().map(p -> p.line).orElse(0),
+                        "Test method has a default/IDE-generated name '" + methodName + "'"
+                ));
+            }
+        }
         return smells;
+    }
+
+    private boolean isDefaultMethodName(String name) {
+        return DEFAULT_METHOD_NAMES.contains(name)
+                || NUMBERED_TEST_PATTERN.matcher(name).matches();
     }
 }

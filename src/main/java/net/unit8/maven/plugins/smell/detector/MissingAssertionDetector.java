@@ -5,8 +5,10 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MissingAssertionDetector implements SmellDetector {
     private static final Set<String> ASSERTION_METHODS = Set.of(
@@ -37,6 +39,10 @@ public class MissingAssertionDetector implements SmellDetector {
         List<TestSmell> smells = new ArrayList<>();
         String className = context.getTestClass().getNameAsString();
 
+        Set<String> classMethodNames = context.getTestClass().getMethods().stream()
+                .map(MethodDeclaration::getNameAsString)
+                .collect(Collectors.toCollection(HashSet::new));
+
         for (MethodDeclaration method : context.getTestMethods()) {
             // Skip if method expects an exception via assertThrows pattern
             if (method.getAnnotationByName("Disabled").isPresent()) {
@@ -44,7 +50,9 @@ public class MissingAssertionDetector implements SmellDetector {
             }
 
             boolean hasAssertion = method.findAll(MethodCallExpr.class).stream()
-                    .anyMatch(call -> ASSERTION_METHODS.contains(call.getNameAsString()));
+                    .anyMatch(call -> ASSERTION_METHODS.contains(call.getNameAsString())
+                            || DetectorHelpers.isAssertionCall(call)
+                            || DetectorHelpers.looksLikeCustomAssertionHelper(call.getNameAsString(), classMethodNames));
 
             if (!hasAssertion) {
                 smells.add(new TestSmell(
