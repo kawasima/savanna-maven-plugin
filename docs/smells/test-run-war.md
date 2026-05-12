@@ -60,4 +60,4 @@ class TempFileTest {
 - `ServerSocket` / `DatagramSocket` / `Socket` のコンストラクタに整数リテラル (0以外) が渡されている場合
 - `File` / `FileInputStream` / `FileOutputStream` / `FileReader` / `FileWriter` / `RandomAccessFile` のコンストラクタに `/tmp`、`/var`、`/dev`、`C:\Temp`、`C:\Windows\Temp` 配下を指す文字列リテラルが渡されている場合
 
-なお `static` 非 `final` フィールドによるテスト間干渉は、別スメル「Order Dependent Test」が検出する。
+なお `static` 非 `final` フィールドによるテスト間干渉は、別スメル「Order Dependent Test」が検出する。ただし Order Dependent Test は当該フィールドへの**書き込み**を検出条件としているので、読み取り専用 (例: テスト間で共有される定数キャッシュ) はどのスメルにも該当しない。
