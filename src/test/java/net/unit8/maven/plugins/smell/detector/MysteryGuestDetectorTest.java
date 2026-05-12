@@ -33,6 +33,43 @@ class MysteryGuestDetectorTest {
     }
 
     @Test
+    void detectsGetResourceAsStream() {
+        // Reading from classpath via getResourceAsStream is a mystery-guest pattern
+        // — the test depends on a file outside its own source.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.InputStream;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testResource() {\n" +
+                "        InputStream in = getClass().getResourceAsStream(\"/data.json\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.MYSTERY_GUEST);
+    }
+
+    @Test
+    void detectsFilesReadAllBytes() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.nio.file.Files;\n" +
+                "import java.nio.file.Paths;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() throws Exception {\n" +
+                "        byte[] data = Files.readAllBytes(Paths.get(\"data.bin\"));\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.MYSTERY_GUEST);
+    }
+
+    @Test
     void doesNotFlagPureLogic() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

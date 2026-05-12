@@ -1,6 +1,7 @@
 package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.stmt.Statement;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
@@ -30,16 +31,15 @@ public class VerboseTestDetector implements SmellDetector {
         String className = context.getTestClass().getNameAsString();
 
         for (MethodDeclaration method : context.getTestMethods()) {
-            int lines = method.getEnd().map(e -> e.line).orElse(0)
-                    - method.getBegin().map(b -> b.line).orElse(0) + 1;
+            int statementCount = method.findAll(Statement.class).size();
 
-            if (lines > threshold) {
+            if (statementCount > threshold) {
                 smells.add(new TestSmell(
                         SmellType.VERBOSE_TEST,
                         className,
                         method.getNameAsString(),
                         method.getBegin().map(p -> p.line).orElse(0),
-                        "Test method is " + lines + " lines (threshold: " + threshold + ")"
+                        "Test method has " + statementCount + " statements (threshold: " + threshold + ")"
                 ));
             }
         }

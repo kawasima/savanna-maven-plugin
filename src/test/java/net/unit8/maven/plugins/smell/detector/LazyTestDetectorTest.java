@@ -43,6 +43,34 @@ class LazyTestDetectorTest {
     }
 
     @Test
+    void detectsLazyThroughThisQualifiedCalls() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testA() {\n" +
+                "        this.svc.process();\n" +
+                "        assertEquals(1, 1);\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testB() {\n" +
+                "        this.svc.process();\n" +
+                "        assertEquals(2, 2);\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testC() {\n" +
+                "        this.svc.process();\n" +
+                "        assertEquals(3, 3);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.LAZY_TEST);
+    }
+
+    @Test
     void doesNotFlagDistinctMethods() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

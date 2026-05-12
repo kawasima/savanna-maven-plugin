@@ -1,6 +1,8 @@
 package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
@@ -31,11 +33,7 @@ public class SleepyTestDetector implements SmellDetector {
         for (MethodDeclaration method : context.getTestMethods()) {
             boolean hasSleep = method.findAll(MethodCallExpr.class).stream()
                     .filter(call -> call.getNameAsString().equals("sleep"))
-                    .anyMatch(call -> call.getScope()
-                            .filter(s -> s instanceof NameExpr)
-                            .map(s -> ((NameExpr) s).getNameAsString())
-                            .filter(name -> name.equals("Thread") || TIMEUNIT_NAMES.contains(name))
-                            .isPresent());
+                    .anyMatch(call -> call.getScope().map(this::isSleepScope).orElse(false));
 
             if (hasSleep) {
                 smells.add(new TestSmell(
@@ -48,5 +46,17 @@ public class SleepyTestDetector implements SmellDetector {
             }
         }
         return smells;
+    }
+
+    private boolean isSleepScope(Expression scope) {
+        if (scope instanceof NameExpr) {
+            String name = ((NameExpr) scope).getNameAsString();
+            return name.equals("Thread") || TIMEUNIT_NAMES.contains(name);
+        }
+        if (scope instanceof FieldAccessExpr) {
+            FieldAccessExpr fae = (FieldAccessExpr) scope;
+            return TIMEUNIT_NAMES.contains(fae.getNameAsString());
+        }
+        return false;
     }
 }

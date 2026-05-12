@@ -2,7 +2,6 @@ package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.*;
@@ -39,10 +38,7 @@ public class LazyTestDetector implements SmellDetector {
                 if (EXCLUDED_METHODS.contains(call.getNameAsString())) {
                     continue;
                 }
-                String scope = call.getScope()
-                        .filter(s -> s instanceof NameExpr)
-                        .map(s -> ((NameExpr) s).getNameAsString())
-                        .orElse(null);
+                String scope = DetectorHelpers.receiverName(call);
                 if (scope != null) {
                     calls.add(scope + "." + call.getNameAsString());
                 }

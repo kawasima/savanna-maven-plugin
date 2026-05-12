@@ -34,6 +34,26 @@ class TestMaverickDetectorTest {
     }
 
     @Test
+    void recognizesThisQualifiedFixtureUse() {
+        // Test using `this.shared` must NOT be flagged as a maverick.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import org.junit.jupiter.api.BeforeEach;\n" +
+                "class FooTest {\n" +
+                "    private String shared;\n" +
+                "    @BeforeEach\n" +
+                "    void setUp() { this.shared = \"hello\"; }\n" +
+                "    @Test\n" +
+                "    void testA() { assert this.shared != null; }\n" +
+                "    @Test\n" +
+                "    void testB() { assert this.shared.length() > 0; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagWhenNoSetup() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

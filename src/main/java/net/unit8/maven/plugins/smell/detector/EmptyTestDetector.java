@@ -2,6 +2,8 @@ package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.EmptyStmt;
+import com.github.javaparser.ast.stmt.Statement;
 import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
@@ -19,7 +21,10 @@ public class EmptyTestDetector implements SmellDetector {
         String className = context.getTestClass().getNameAsString();
 
         for (MethodDeclaration method : context.getTestMethods()) {
-            if (method.getBody().map(BlockStmt::isEmpty).orElse(true)) {
+            if (method.getAnnotationByName("Disabled").isPresent()) {
+                continue;
+            }
+            if (isEffectivelyEmpty(method.getBody().orElse(null))) {
                 smells.add(new TestSmell(
                         SmellType.EMPTY_TEST,
                         className,
@@ -30,5 +35,17 @@ public class EmptyTestDetector implements SmellDetector {
             }
         }
         return smells;
+    }
+
+    private boolean isEffectivelyEmpty(BlockStmt body) {
+        if (body == null || body.isEmpty()) {
+            return true;
+        }
+        for (Statement stmt : body.getStatements()) {
+            if (!(stmt instanceof EmptyStmt)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

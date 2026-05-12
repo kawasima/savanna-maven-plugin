@@ -38,6 +38,9 @@ public class RedundantPrintDetector implements SmellDetector {
 
     private boolean isPrintCall(MethodCallExpr call) {
         String methodName = call.getNameAsString();
+        if (methodName.equals("printStackTrace")) {
+            return true;
+        }
         if (!methodName.startsWith("print") && !methodName.equals("write")) {
             return false;
         }

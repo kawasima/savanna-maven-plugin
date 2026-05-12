@@ -36,6 +36,28 @@ class IndirectTestingDetectorTest {
     }
 
     @Test
+    void detectsIndirectTestingWhenOnlyNonExpectedScopeUsed() {
+        // Canonical indirect testing: all production calls go through a single
+        // non-expected collaborator (no expected-scope call at all).
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class UserServiceTest {\n" +
+                "    @Test\n" +
+                "    void testUser() {\n" +
+                "        repo.save();\n" +
+                "        repo.findById();\n" +
+                "        repo.delete();\n" +
+                "        assertEquals(1, 1);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.INDIRECT_TESTING);
+    }
+
+    @Test
     void doesNotFlagDirectTesting() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

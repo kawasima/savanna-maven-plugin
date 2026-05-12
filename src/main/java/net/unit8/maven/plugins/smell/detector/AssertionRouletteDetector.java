@@ -51,9 +51,13 @@ public class AssertionRouletteDetector implements SmellDetector {
                     .filter(this::lacksJUnitMessage)
                     .count();
 
-            // Count AssertJ assertion chains without as()/describedAs()
+            // Count AssertJ assertion chains as a single logical assertion each.
+            // A chain like assertThat(x).isNotNull().hasSize(3).contains(y) is ONE
+            // check — only consider terminals that are not themselves the scope of
+            // another AssertJ terminal in the same chain.
             long assertjWithoutMessage = allCalls.stream()
                     .filter(call -> ASSERTJ_TERMINAL_METHODS.contains(call.getNameAsString()))
+                    .filter(this::isOutermostAssertJTerminal)
                     .filter(call -> !hasAssertJDescription(call))
                     .count();
 
@@ -81,6 +85,20 @@ public class AssertionRouletteDetector implements SmellDetector {
             return argCount == 1;
         }
         return argCount == 2;
+    }
+
+    /**
+     * True when this terminal is the outermost AssertJ check in its chain
+     * — i.e. nothing further is called on its result. This is what we want
+     * to count as "one logical assertion".
+     */
+    private boolean isOutermostAssertJTerminal(MethodCallExpr call) {
+        Object parent = call.getParentNode().orElse(null);
+        if (parent instanceof MethodCallExpr) {
+            MethodCallExpr parentCall = (MethodCallExpr) parent;
+            return !ASSERTJ_TERMINAL_METHODS.contains(parentCall.getNameAsString());
+        }
+        return true;
     }
 
     /**

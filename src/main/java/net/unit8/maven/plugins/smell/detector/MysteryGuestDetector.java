@@ -27,6 +27,16 @@ public class MysteryGuestDetector implements SmellDetector {
             "getConnection", "openConnection"
     );
 
+    /**
+     * Method names whose invocation always indicates classpath / filesystem
+     * resource access regardless of scope. {@code getResource(AsStream)} reaches
+     * outside the test source; {@code openConnection} opens a network handle.
+     */
+    private static final Set<String> RESOURCE_LOOKUP_METHODS = Set.of(
+            "getResource", "getResourceAsStream",
+            "getSystemResource", "getSystemResourceAsStream"
+    );
+
     @Override
     public SmellType type() {
         return SmellType.MYSTERY_GUEST;
@@ -43,12 +53,7 @@ public class MysteryGuestDetector implements SmellDetector {
 
             if (!hasExternalResource) {
                 hasExternalResource = method.findAll(MethodCallExpr.class).stream()
-                        .anyMatch(call -> IO_METHOD_CALLS.contains(call.getNameAsString())
-                                && call.getScope()
-                                .filter(s -> s instanceof NameExpr)
-                                .map(s -> ((NameExpr) s).getNameAsString())
-                                .filter(name -> name.equals("Files") || name.equals("DriverManager"))
-                                .isPresent());
+                        .anyMatch(this::isExternalResourceCall);
             }
 
             if (hasExternalResource) {
@@ -62,5 +67,20 @@ public class MysteryGuestDetector implements SmellDetector {
             }
         }
         return smells;
+    }
+
+    private boolean isExternalResourceCall(MethodCallExpr call) {
+        String name = call.getNameAsString();
+        if (RESOURCE_LOOKUP_METHODS.contains(name)) {
+            return true;
+        }
+        if (!IO_METHOD_CALLS.contains(name)) {
+            return false;
+        }
+        return call.getScope()
+                .filter(s -> s instanceof NameExpr)
+                .map(s -> ((NameExpr) s).getNameAsString())
+                .filter(n -> n.equals("Files") || n.equals("DriverManager"))
+                .isPresent();
     }
 }

@@ -33,6 +33,50 @@ class ResourceLeakageDetectorTest {
     }
 
     @Test
+    void doesNotFlagByteArrayStreams() {
+        // ByteArrayInputStream/OutputStream's close() is a no-op — flagging
+        // is a textbook false positive.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testBuffers() {\n" +
+                "        ByteArrayInputStream in = new ByteArrayInputStream(new byte[10]);\n" +
+                "        ByteArrayOutputStream out = new ByteArrayOutputStream();\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void detectsResourceCreatedInTryBody() {
+        // try-with-resources only manages the resources declared in its header.
+        // A `new FileInputStream(...)` created inside the try BODY (not as a resource)
+        // is still leaked even though it's lexically inside a TryStmt.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testLeakInTryBody() throws Exception {\n" +
+                "        try (BufferedReader outer = new BufferedReader(new FileReader(\"a.txt\"))) {\n" +
+                "            FileInputStream leaked = new FileInputStream(\"b.txt\");\n" +
+                "            leaked.read();\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        // FileReader is wrapped as a constructor arg of the resource — that one is fine.
+        // FileInputStream in the body is leaked.
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.RESOURCE_LEAKAGE);
+    }
+
+    @Test
     void doesNotFlagTryWithResources() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

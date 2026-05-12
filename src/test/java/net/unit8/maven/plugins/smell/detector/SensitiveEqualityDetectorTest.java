@@ -32,6 +32,72 @@ class SensitiveEqualityDetectorTest {
     }
 
     @Test
+    void detectsStringValueOfInAssertion() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testFromValueOf() {\n" +
+                "        assertEquals(\"Foo\", String.valueOf(obj));\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.SENSITIVE_EQUALITY);
+    }
+
+    @Test
+    void detectsObjectsToStringInAssertion() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.util.Objects;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testObjectsToString() {\n" +
+                "        assertEquals(\"Foo\", Objects.toString(obj));\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void detectsStringConcatToBuildToString() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testConcat() {\n" +
+                "        assertEquals(\"Foo\", \"\" + obj);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
+    void detectsToStringInAssertJChain() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testAssertJToString() {\n" +
+                "        assertThat(obj.toString()).isEqualTo(\"Foo\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
     void doesNotFlagNormalAssertion() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

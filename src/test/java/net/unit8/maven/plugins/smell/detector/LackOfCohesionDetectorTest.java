@@ -43,6 +43,59 @@ class LackOfCohesionDetectorTest {
     }
 
     @Test
+    void detectsLowCohesionThroughThisField() {
+        // All collaborators are accessed via `this.x.method()`. The detector must
+        // see through FieldAccessExpr scopes — otherwise cohesion is unmeasurable.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testA() {\n" +
+                "        this.userService.create();\n" +
+                "        assertEquals(1, 1);\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testB() {\n" +
+                "        this.orderService.submit();\n" +
+                "        assertEquals(2, 2);\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testC() {\n" +
+                "        this.emailService.send();\n" +
+                "        assertEquals(3, 3);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.LACK_OF_COHESION);
+    }
+
+    @Test
+    void doesNotFlagCohesiveThisFieldTests() {
+        // All tests share the same collaborator via `this.svc`.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testA() {\n" +
+                "        this.svc.create();\n" +
+                "        assertEquals(1, 1);\n" +
+                "    }\n" +
+                "    @Test\n" +
+                "    void testB() {\n" +
+                "        this.svc.update();\n" +
+                "        assertEquals(2, 2);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagCohesiveTests() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

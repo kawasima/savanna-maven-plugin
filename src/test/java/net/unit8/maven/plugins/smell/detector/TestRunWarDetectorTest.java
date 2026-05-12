@@ -15,15 +15,17 @@ class TestRunWarDetectorTest {
     private final TestClassParser parser = new TestClassParser();
 
     @Test
-    void detectsStaticMutableField() {
+    void detectsHardcodedPort() {
+        // A fixed port number means two parallel test runs on the same machine
+        // will fight over the socket — the canonical "test run war" pattern.
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
+                "import java.net.ServerSocket;\n" +
                 "class FooTest {\n" +
-                "    static int counter = 0;\n" +
                 "    @Test\n" +
-                "    void testIncrement() {\n" +
-                "        counter++;\n" +
-                "        assert true;\n" +
+                "    void testServer() throws Exception {\n" +
+                "        ServerSocket s = new ServerSocket(8080);\n" +
+                "        s.close();\n" +
                 "    }\n" +
                 "}\n"
         );
@@ -33,15 +35,47 @@ class TestRunWarDetectorTest {
     }
 
     @Test
-    void doesNotFlagStaticFinalField() {
+    void detectsHardcodedTempPath() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.File;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testFile() {\n" +
+                "        File f = new File(\"/tmp/test-data.txt\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getType()).isEqualTo(SmellType.TEST_RUN_WAR);
+    }
+
+    @Test
+    void doesNotFlagDynamicPort() {
+        // Port 0 means "OS picks a free port" — no collision possible.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.net.ServerSocket;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testServer() throws Exception {\n" +
+                "        ServerSocket s = new ServerSocket(0);\n" +
+                "        s.close();\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void doesNotFlagBareTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
                 "class FooTest {\n" +
-                "    static final String NAME = \"test\";\n" +
                 "    @Test\n" +
-                "    void testName() {\n" +
-                "        assert true;\n" +
-                "    }\n" +
+                "    void testName() { assert true; }\n" +
                 "}\n"
         );
         List<TestSmell> smells = detector.detect(ctx);
