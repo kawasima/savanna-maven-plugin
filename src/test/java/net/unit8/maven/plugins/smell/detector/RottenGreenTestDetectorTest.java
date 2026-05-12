@@ -83,6 +83,28 @@ class RottenGreenTestDetectorTest {
     }
 
     @Test
+    void doesNotFlagAssertionInsideDoWhile() {
+        // Regression: a do/while body executes at least once, so an assertion
+        // inside it is guaranteed to run — must NOT be flagged.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import static org.junit.jupiter.api.Assertions.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testDoWhile() {\n" +
+                "        int i = 0;\n" +
+                "        do {\n" +
+                "            assertEquals(0, i);\n" +
+                "            i++;\n" +
+                "        } while (i < 1);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagUnconditionalAssertion() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

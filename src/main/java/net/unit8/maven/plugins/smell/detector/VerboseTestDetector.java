@@ -1,6 +1,7 @@
 package net.unit8.maven.plugins.smell.detector;
 
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.Statement;
 import net.unit8.maven.plugins.smell.*;
 
@@ -31,7 +32,9 @@ public class VerboseTestDetector implements SmellDetector {
         String className = context.getTestClass().getNameAsString();
 
         for (MethodDeclaration method : context.getTestMethods()) {
-            int statementCount = method.findAll(Statement.class).size();
+            int statementCount = (int) method.findAll(Statement.class).stream()
+                    .filter(s -> !(s instanceof BlockStmt))
+                    .count();
 
             if (statementCount > threshold) {
                 smells.add(new TestSmell(

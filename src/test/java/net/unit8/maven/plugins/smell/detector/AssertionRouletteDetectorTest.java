@@ -105,6 +105,27 @@ class AssertionRouletteDetectorTest {
     }
 
     @Test
+    void countsAssertJChainWithMidChainAsAsSingleAssertion() {
+        // Regression: previously a chain like .isNotNull().as("d").hasSize(3)
+        // would count isNotNull as outermost (its parent is as(), not a
+        // terminal), inflating the assertion count.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.util.List;\n" +
+                "import static org.assertj.core.api.Assertions.assertThat;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        List<Integer> xs = null;\n" +
+                "        assertThat(xs).isNotNull().as(\"d\").hasSize(3);\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagAssertJAssertionsWithAs() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

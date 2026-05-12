@@ -67,6 +67,26 @@ class SleepyTestDetectorTest {
     }
 
     @Test
+    void doesNotFlagNonTimeUnitTypeWithSecondsField() {
+        // Regression: previously matched any FieldAccessExpr whose name was a
+        // TimeUnit constant, even if the qualifier was not TimeUnit
+        // (e.g. a user enum or constant holder type).
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testSomething() {\n" +
+                "        MyTimer.SECONDS.sleep(1);\n" +
+                "        assert true;\n" +
+                "    }\n" +
+                "    static class MyTimer { static MyTimer SECONDS; void sleep(int n) {} }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagTestWithoutSleep() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
