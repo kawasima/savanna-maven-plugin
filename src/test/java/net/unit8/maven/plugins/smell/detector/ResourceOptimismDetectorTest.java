@@ -89,6 +89,25 @@ class ResourceOptimismDetectorTest {
     }
 
     @Test
+    void detectsFullyQualifiedFilesRead() {
+        // Regression: hasFilesReadCall used to require scope to be a bare
+        // NameExpr "Files", so a fully-qualified call (FieldAccessExpr scope)
+        // was silently missed.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() throws Exception {\n" +
+                "        byte[] data = java.nio.file.Files.readAllBytes(\n" +
+                "            java.nio.file.Paths.get(\"data.bin\"));\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
     void flagsWhenUnrelatedApiExistsCallIsPresent() {
         // Regression: hasExistenceCheck used to accept any method named
         // exists()/isFile()/etc regardless of scope, so an unrelated API

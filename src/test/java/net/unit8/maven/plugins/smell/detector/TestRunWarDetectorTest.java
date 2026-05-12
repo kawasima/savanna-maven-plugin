@@ -70,6 +70,27 @@ class TestRunWarDetectorTest {
     }
 
     @Test
+    void detectsHardcodedPortInSocketHostPortConstructor() {
+        // Regression: Socket(String host, int port) keeps the port as the
+        // 2nd argument. Previously only argument index 0 was inspected, so
+        // Socket("localhost", 8080) was silently missed.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.net.Socket;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testClient() throws Exception {\n" +
+                "        Socket s = new Socket(\"localhost\", 8080);\n" +
+                "        s.close();\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getMessage()).contains("8080");
+    }
+
+    @Test
     void doesNotFlagPathThatMerelySharesPrefix() {
         // Regression: startsWith("/tmp") used to also match "/tmpfile" — a
         // sibling path that isn't actually under /tmp.
