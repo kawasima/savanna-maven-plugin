@@ -8,6 +8,7 @@ import net.unit8.maven.plugins.smell.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -20,6 +21,18 @@ import java.util.Set;
 public class TestRunWarDetector implements SmellDetector {
     private static final Set<String> SOCKET_TYPES = Set.of(
             "ServerSocket", "DatagramSocket", "Socket"
+    );
+
+    /**
+     * Constructor argument index at which the port number appears, by socket
+     * type. {@code Socket(host, port, ...)} has the port as the 2nd argument;
+     * {@code ServerSocket(port, ...)} and {@code DatagramSocket(port, ...)}
+     * have it as the 1st.
+     */
+    private static final Map<String, Integer> PORT_ARG_INDEX = Map.of(
+            "ServerSocket", 0,
+            "DatagramSocket", 0,
+            "Socket", 1
     );
 
     private static final Set<String> FILE_TYPES = Set.of(
@@ -41,7 +54,7 @@ public class TestRunWarDetector implements SmellDetector {
             for (ObjectCreationExpr ctor : method.findAll(ObjectCreationExpr.class)) {
                 String typeName = ctor.getType().getNameAsString();
                 if (SOCKET_TYPES.contains(typeName)) {
-                    int port = firstIntArg(ctor);
+                    int port = portArg(ctor, typeName);
                     if (port > 0) {
                         smells.add(make(className, method,
                                 "Test binds hardcoded port " + port
@@ -70,18 +83,21 @@ public class TestRunWarDetector implements SmellDetector {
         );
     }
 
-    private int firstIntArg(ObjectCreationExpr ctor) {
-        if (ctor.getArguments().isEmpty()) {
+    /**
+     * Returns the integer literal at the port-argument position for the given
+     * socket type, or -1 if that argument is missing or not an integer literal.
+     * {@code Socket(host, port)} keeps the port at index 1; the other socket
+     * types keep it at index 0.
+     */
+    private int portArg(ObjectCreationExpr ctor, String socketType) {
+        Integer index = PORT_ARG_INDEX.get(socketType);
+        if (index == null || ctor.getArguments().size() <= index) {
             return -1;
         }
-        if (ctor.getArgument(0) instanceof IntegerLiteralExpr) {
-            try {
-                return ((IntegerLiteralExpr) ctor.getArgument(0)).asNumber().intValue();
-            } catch (NumberFormatException ignored) {
-                return -1;
-            }
+        if (!(ctor.getArgument(index) instanceof IntegerLiteralExpr)) {
+            return -1;
         }
-        return -1;
+        return ((IntegerLiteralExpr) ctor.getArgument(index)).asNumber().intValue();
     }
 
     private String firstStringArg(ObjectCreationExpr ctor) {

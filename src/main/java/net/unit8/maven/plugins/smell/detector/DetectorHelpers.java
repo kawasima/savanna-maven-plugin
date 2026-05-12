@@ -63,7 +63,10 @@ final class DetectorHelpers {
             "doesNotContain",
             "startsWith", "endsWith",
             "hasMessage", "hasMessageContaining", "hasMessageStartingWith",
-            "hasFieldOrPropertyWithValue", "extracting"
+            "hasFieldOrPropertyWithValue"
+            // Note: "extracting" is intentionally excluded — it's a navigation
+            // step, not a terminal, so the assertion lives on whatever is
+            // chained off of it.
     );
 
     private DetectorHelpers() {

@@ -80,11 +80,7 @@ public class ResourceOptimismDetector implements SmellDetector {
     private boolean hasFilesReadCall(MethodDeclaration method) {
         return method.findAll(MethodCallExpr.class).stream()
                 .anyMatch(call -> FILES_READ_METHODS.contains(call.getNameAsString())
-                        && call.getScope()
-                                .filter(s -> s instanceof NameExpr)
-                                .map(s -> ((NameExpr) s).getNameAsString())
-                                .filter("Files"::equals)
-                                .isPresent());
+                        && call.getScope().map(s -> scopeNameIs(s, "Files")).orElse(false));
     }
 
     private boolean hasExistenceCheck(MethodDeclaration method) {
