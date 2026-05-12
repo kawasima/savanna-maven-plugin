@@ -105,10 +105,19 @@ class AssertionRouletteDetectorTest {
     }
 
     @Test
-    void countsAssertJChainWithMidChainAsAsSingleAssertion() {
-        // Regression: previously a chain like .isNotNull().as("d").hasSize(3)
-        // would count isNotNull as outermost (its parent is as(), not a
-        // terminal), inflating the assertion count.
+    void countsAssertJChainWithNonTerminalMidCallAsSingleAssertion() {
+        // Regression: the old `isOutermostAssertJTerminal` checked whether the
+        // PARENT call name was a terminal — so when a non-terminal AssertJ
+        // method (e.g. .satisfies(...)) appears between two terminals, the
+        // inner terminal looked outermost and inflated the count.
+        //
+        // Pre-fix on this test:
+        //   - isNotNull parent is satisfies (non-terminal) -> counted outermost
+        //   - hasSize parent is ExpressionStmt -> counted outermost
+        //   - total = 2 -> ASSERTION_ROULETTE flagged
+        // Post-fix:
+        //   - isNotNull IS the scope of satisfies -> NOT outermost
+        //   - hasSize outermost -> total = 1 -> not flagged
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +
                 "import java.util.List;\n" +
@@ -117,7 +126,8 @@ class AssertionRouletteDetectorTest {
                 "    @Test\n" +
                 "    void testSomething() {\n" +
                 "        List<Integer> xs = null;\n" +
-                "        assertThat(xs).isNotNull().as(\"d\").hasSize(3);\n" +
+                "        assertThat(xs).isNotNull().satisfies(ys -> {});\n" +
+                "        assertThat(xs).hasSize(3);\n" +
                 "    }\n" +
                 "}\n"
         );

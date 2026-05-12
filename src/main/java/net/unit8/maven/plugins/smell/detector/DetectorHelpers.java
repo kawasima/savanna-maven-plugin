@@ -6,6 +6,9 @@ import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.ThisExpr;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -116,53 +119,57 @@ final class DetectorHelpers {
 
     /**
      * Walks the field-access chain and returns the rightmost identifier that
-     * looks like a type name. Falls back to the leftmost identifier if none of
-     * the chain steps look like a type.
+     * looks like a type name. Falls back to the leftmost identifier when no
+     * step looks like a type.
+     *
+     * <p>The "type-like" judgement is context-sensitive on the chain root:
+     * <ul>
+     *   <li>If the root is a lowercase identifier (a package segment, as in
+     *       {@code com.foo.Bar.baz()}), a single uppercase letter also counts
+     *       as a type — covers single-letter class names like {@code X}.</li>
+     *   <li>If the root is itself uppercase (an enum/class scenario like
+     *       {@code MyEnum.VALUE_A.compute()}), single uppercase letters
+     *       continue to be treated as constants, so the root wins.</li>
+     * </ul>
      */
     private static String chainCollaboratorName(FieldAccessExpr fae) {
-        java.util.List<String> names = new java.util.ArrayList<>();
+        List<String> names = new ArrayList<>();
         Expression cursor = fae;
         while (cursor instanceof FieldAccessExpr) {
             FieldAccessExpr current = (FieldAccessExpr) cursor;
             names.add(current.getNameAsString());
             cursor = current.getScope();
         }
-        String root;
-        if (cursor instanceof NameExpr) {
-            root = ((NameExpr) cursor).getNameAsString();
-        } else {
+        if (!(cursor instanceof NameExpr)) {
             return null;
         }
-        // names is right-to-left; the rightmost-type-like identifier is the
-        // first non-CONSTANT name we encounter walking from left (= root) to
-        // right (= fae). Reverse first.
-        java.util.Collections.reverse(names);
+        String root = ((NameExpr) cursor).getNameAsString();
+        boolean rootIsLowerCase = !root.isEmpty() && Character.isLowerCase(root.charAt(0));
+        Collections.reverse(names);
         String collaborator = root;
         for (String n : names) {
-            if (looksLikeTypeName(n)) {
+            if (looksLikeTypeName(n, rootIsLowerCase)) {
                 collaborator = n;
             }
         }
-        // Special case: if root itself looks like a type AND the very next
-        // step is an ALL_UPPER constant (enum constant pattern), prefer root.
-        // E.g. MyEnum.VALUE_A.compute() — collaborator above would have been
-        // set to "MyEnum" by the loop (root is type-like) and never overridden
-        // because VALUE_A and any further steps aren't type-like. Good.
         return collaborator;
     }
 
     /**
-     * Rough heuristic: an UpperCamelCase identifier that is not ALL_UPPER_SNAKE.
-     * Used to distinguish class names ({@code Bar}, {@code MyEnum}) from
-     * constants ({@code VALUE_A}) and package segments ({@code com}, {@code foo}).
+     * True when {@code name} reads as a type identifier. Multi-character
+     * UpperCamelCase ({@code Bar}, {@code MyEnum}) always qualifies; a single
+     * uppercase letter only qualifies when {@code permitSingleUpper} is set
+     * (typically when the chain root is a package segment).
      */
-    private static boolean looksLikeTypeName(String name) {
+    private static boolean looksLikeTypeName(String name, boolean permitSingleUpper) {
         if (name.isEmpty() || !Character.isUpperCase(name.charAt(0))) {
             return false;
         }
+        if (name.length() == 1) {
+            return permitSingleUpper;
+        }
         for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if (Character.isLowerCase(c)) {
+            if (Character.isLowerCase(name.charAt(i))) {
                 return true;
             }
         }
@@ -205,16 +212,14 @@ final class DetectorHelpers {
     }
 
     /**
-     * True when {@code name} looks like a custom assertion helper AND is the name of
-     * a method actually defined in the surrounding test class. Combining the camel-case
-     * naming convention with an in-class lookup keeps unrelated production methods
-     * (e.g. {@code verifyEmailToken()}, {@code checkBalance()} on a service) from
-     * silently being treated as assertions.
+     * True when {@code name} matches the camel-case naming convention for a
+     * custom assertion helper ({@code assertX}, {@code verifyX}, {@code checkX},
+     * {@code expectX}). This is a pure naming check — callers should combine
+     * it with additional context (e.g. "is the call unqualified and does the
+     * test class actually declare this method?") to avoid suppressing genuine
+     * MISSING_ASSERTION cases.
      */
-    static boolean looksLikeCustomAssertionHelper(String name, Set<String> classMethodNames) {
-        if (!classMethodNames.contains(name)) {
-            return false;
-        }
+    static boolean hasCustomAssertionHelperName(String name) {
         return startsWithCamelPrefix(name, "assert")
                 || startsWithCamelPrefix(name, "verify")
                 || startsWithCamelPrefix(name, "check")
