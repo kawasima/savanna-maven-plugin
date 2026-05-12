@@ -49,6 +49,43 @@ class EmptyTestDetectorTest {
     }
 
     @Test
+    void doesNotFlagJUnit4IgnoredEmptyStub() {
+        // Regression: previously only @Disabled was skipped, so an @Ignore
+        // empty stub got double-reported (here + IgnoredTestDetector).
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.Test;\n" +
+                "import org.junit.Ignore;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    @Ignore\n" +
+                "    public void notYet() {\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
+    void doesNotFlagAnyMethodWhenEnclosingClassIsDisabled() {
+        // Regression: class-level @Disabled was not propagated; every empty
+        // method inside it got double-reported.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import org.junit.jupiter.api.Disabled;\n" +
+                "@Disabled\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void firstStub() {}\n" +
+                "    @Test\n" +
+                "    void secondStub() {}\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void detectsEmptyStatementOnlyBody() {
         // `{ ; }` — one EmptyStmt, no actual work.
         DetectionContext ctx = parser.parseSource(

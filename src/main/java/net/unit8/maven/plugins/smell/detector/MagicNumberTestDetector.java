@@ -21,7 +21,15 @@ public class MagicNumberTestDetector implements SmellDetector {
             "assertThat"
     );
 
-    private static final Set<String> ASSERTJ_TERMINALS = Set.of(
+    /**
+     * AssertJ terminals that take a value-bearing argument and would
+     * meaningfully contain a magic number. Subset of
+     * {@link DetectorHelpers#ASSERTJ_TERMINALS} — zero-arg checks like
+     * {@code isNull}/{@code isEmpty}/{@code isTrue} can never carry a
+     * magic-number argument, but explicitly listing the value-bearing ones
+     * keeps the predicate intent visible.
+     */
+    private static final Set<String> VALUE_BEARING_ASSERTJ_TERMINALS = Set.of(
             "isEqualTo", "isNotEqualTo",
             "isLessThan", "isLessThanOrEqualTo",
             "isGreaterThan", "isGreaterThanOrEqualTo",
@@ -77,20 +85,8 @@ public class MagicNumberTestDetector implements SmellDetector {
         if (ASSERTION_METHODS.contains(name)) {
             return true;
         }
-        if (ASSERTJ_TERMINALS.contains(name)) {
-            return rootedInAssertThat(call);
-        }
-        return false;
-    }
-
-    private boolean rootedInAssertThat(MethodCallExpr call) {
-        Expression scope = call.getScope().orElse(null);
-        while (scope instanceof MethodCallExpr) {
-            MethodCallExpr inner = (MethodCallExpr) scope;
-            if ("assertThat".equals(inner.getNameAsString())) {
-                return true;
-            }
-            scope = inner.getScope().orElse(null);
+        if (VALUE_BEARING_ASSERTJ_TERMINALS.contains(name)) {
+            return DetectorHelpers.chainRootedIn(call, DetectorHelpers.ASSERTION_ENTRY_METHODS);
         }
         return false;
     }

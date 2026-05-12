@@ -20,8 +20,17 @@ public class EmptyTestDetector implements SmellDetector {
         List<TestSmell> smells = new ArrayList<>();
         String className = context.getTestClass().getNameAsString();
 
+        // Ignored / disabled tests are already reported by IgnoredTestDetector;
+        // don't double-report them as EMPTY_TEST.
+        boolean classIgnored = context.getTestClass().getAnnotationByName("Disabled").isPresent()
+                || context.getTestClass().getAnnotationByName("Ignore").isPresent();
+        if (classIgnored) {
+            return smells;
+        }
+
         for (MethodDeclaration method : context.getTestMethods()) {
-            if (method.getAnnotationByName("Disabled").isPresent()) {
+            if (method.getAnnotationByName("Disabled").isPresent()
+                    || method.getAnnotationByName("Ignore").isPresent()) {
                 continue;
             }
             if (isEffectivelyEmpty(method.getBody().orElse(null))) {
