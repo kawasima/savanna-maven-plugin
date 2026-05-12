@@ -132,7 +132,19 @@ public class FlakyTestDetector implements SmellDetector {
             return name.equals("Thread") || TIMEUNIT_NAMES.contains(name);
         }
         if (scope instanceof FieldAccessExpr) {
-            return TIMEUNIT_NAMES.contains(((FieldAccessExpr) scope).getNameAsString());
+            FieldAccessExpr fae = (FieldAccessExpr) scope;
+            return TIMEUNIT_NAMES.contains(fae.getNameAsString())
+                    && isTimeUnitQualifier(fae.getScope());
+        }
+        return false;
+    }
+
+    private boolean isTimeUnitQualifier(Expression scope) {
+        if (scope instanceof NameExpr) {
+            return ((NameExpr) scope).getNameAsString().equals("TimeUnit");
+        }
+        if (scope instanceof FieldAccessExpr) {
+            return ((FieldAccessExpr) scope).getNameAsString().equals("TimeUnit");
         }
         return false;
     }

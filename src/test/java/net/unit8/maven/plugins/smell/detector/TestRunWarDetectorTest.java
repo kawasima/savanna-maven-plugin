@@ -70,6 +70,24 @@ class TestRunWarDetectorTest {
     }
 
     @Test
+    void doesNotFlagPathThatMerelySharesPrefix() {
+        // Regression: startsWith("/tmp") used to also match "/tmpfile" — a
+        // sibling path that isn't actually under /tmp.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.File;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testFile() {\n" +
+                "        File f = new File(\"/tmpfile.dat\");\n" +
+                "    }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).isEmpty();
+    }
+
+    @Test
     void doesNotFlagBareTest() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

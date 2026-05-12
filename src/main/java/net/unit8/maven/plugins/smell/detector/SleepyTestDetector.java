@@ -55,7 +55,23 @@ public class SleepyTestDetector implements SmellDetector {
         }
         if (scope instanceof FieldAccessExpr) {
             FieldAccessExpr fae = (FieldAccessExpr) scope;
-            return TIMEUNIT_NAMES.contains(fae.getNameAsString());
+            return TIMEUNIT_NAMES.contains(fae.getNameAsString())
+                    && isTimeUnitQualifier(fae.getScope());
+        }
+        return false;
+    }
+
+    /**
+     * True when {@code scope} resolves to {@code TimeUnit} —
+     * either the bare name (after static-import-ish usage) or a qualified
+     * reference rooted at {@code java.util.concurrent.TimeUnit}.
+     */
+    private boolean isTimeUnitQualifier(Expression scope) {
+        if (scope instanceof NameExpr) {
+            return ((NameExpr) scope).getNameAsString().equals("TimeUnit");
+        }
+        if (scope instanceof FieldAccessExpr) {
+            return ((FieldAccessExpr) scope).getNameAsString().equals("TimeUnit");
         }
         return false;
     }

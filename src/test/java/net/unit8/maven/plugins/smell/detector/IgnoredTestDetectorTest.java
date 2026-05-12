@@ -67,6 +67,24 @@ class IgnoredTestDetectorTest {
         List<TestSmell> smells = detector.detect(ctx);
         assertThat(smells).hasSize(1);
         assertThat(smells.get(0).getType()).isEqualTo(SmellType.IGNORED_TEST);
+        // Message should distinguish @Ignore from @Disabled.
+        assertThat(smells.get(0).getMessage()).contains("@Ignore");
+    }
+
+    @Test
+    void detectsClassLevelJUnit4Ignore() {
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.Test;\n" +
+                "import org.junit.Ignore;\n" +
+                "@Ignore\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    public void firstTest() { assert true; }\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+        assertThat(smells.get(0).getMessage()).contains("@Ignore");
     }
 
     @Test

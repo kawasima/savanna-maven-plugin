@@ -89,6 +89,27 @@ class ResourceOptimismDetectorTest {
     }
 
     @Test
+    void flagsWhenUnrelatedApiExistsCallIsPresent() {
+        // Regression: hasExistenceCheck used to accept any method named
+        // exists()/isFile()/etc regardless of scope, so an unrelated API
+        // method named exists() on a builder/chain could mask the smell.
+        DetectionContext ctx = parser.parseSource(
+                "import org.junit.jupiter.api.Test;\n" +
+                "import java.io.*;\n" +
+                "class FooTest {\n" +
+                "    @Test\n" +
+                "    void testRead() throws Exception {\n" +
+                "        boolean ok = someService.lookup(\"x\").exists();\n" +
+                "        FileInputStream fis = new FileInputStream(\"data.txt\");\n" +
+                "    }\n" +
+                "    Object someService = null;\n" +
+                "}\n"
+        );
+        List<TestSmell> smells = detector.detect(ctx);
+        assertThat(smells).hasSize(1);
+    }
+
+    @Test
     void doesNotFlagWithExistsCheck() {
         DetectionContext ctx = parser.parseSource(
                 "import org.junit.jupiter.api.Test;\n" +

@@ -90,13 +90,17 @@ public class AssertionRouletteDetector implements SmellDetector {
     /**
      * True when this terminal is the outermost AssertJ check in its chain
      * — i.e. nothing further is called on its result. This is what we want
-     * to count as "one logical assertion".
+     * to count as "one logical assertion". A terminal is outermost when it
+     * is not used as the {@code scope} of any other method call (regardless
+     * of whether that parent call is itself an AssertJ terminal — e.g.
+     * {@code assertThat(x).isNotNull().as("d").hasSize(3)} has only one
+     * outermost terminal, {@code hasSize}).
      */
     private boolean isOutermostAssertJTerminal(MethodCallExpr call) {
         Object parent = call.getParentNode().orElse(null);
         if (parent instanceof MethodCallExpr) {
             MethodCallExpr parentCall = (MethodCallExpr) parent;
-            return !ASSERTJ_TERMINAL_METHODS.contains(parentCall.getNameAsString());
+            return parentCall.getScope().orElse(null) != call;
         }
         return true;
     }
